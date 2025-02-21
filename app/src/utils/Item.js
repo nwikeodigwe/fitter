@@ -31,7 +31,7 @@ class Item {
 
     item = await this.find();
 
-    return item ? this.update() : this.create();
+    return item ? this.update({ id: item.id }) : this.create();
   }
 
   async create(item = {}) {

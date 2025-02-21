@@ -24,7 +24,7 @@ class Collection {
 
     collection = await this.find();
 
-    return collection ? this.update() : this.create();
+    return collection ? this.update({ id: collection.id }) : this.create();
   }
 
   async create(collection = {}) {

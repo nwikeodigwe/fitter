@@ -35,7 +35,7 @@ class Style {
 
     style = await this.find();
 
-    return style ? this.update() : this.create();
+    return style ? this.update({ id: style.id }) : this.create();
   }
 
   async create(style = {}) {

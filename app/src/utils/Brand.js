@@ -31,7 +31,7 @@ class Brand {
 
     brand = await this.find({ id: this.id, name: this.name });
 
-    return brand ? this.update() : this.create();
+    return brand ? this.update({ id: brand.id }) : this.create();
   }
 
   async create(brand = {}) {

@@ -15,25 +15,25 @@ model User {
   social              String?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
-  brand               Brand[]
-  BrandSubscription   BrandSubscription[]
-  BrandVote           BrandVote[]
+  brands              Brand[]
+  brandSubscription   BrandSubscription[]
+  brandVote           BrandVote[]
   authoredCollections Collection[]         @relation("UserAuthoredCollection")
-  CollectionVote      CollectionVote[]
+  collectionVote      CollectionVote[]
   comments            Comment[]
-  CommentVote         CommentVote[]
+  commentVote         CommentVote[]
   favoriteBrands      FavoriteBrand[]
   favoriteCollections FavoriteCollection[]
   favoriteStyles      FavoriteStyle[]
-  Item                Item[]
-  ItemVote            ItemVote[]
+  items               Item[]
+  itemVote            ItemVote[]
   profile             Profile?
   resets              Reset[]
   authoredStyles      Style[]              @relation("UserAuthoredStyles")
-  StyleVote           StyleVote[]
+  styleVote           StyleVote[]
   subscriptions       UserSubscription[]   @relation("Subscribers")
   subscribers         UserSubscription[]   @relation("SubscribedTo")
-  favoriteItem        favoriteItem[]
+  favoriteItem        FavoriteItem[]
 }
 
 model Profile {
@@ -91,7 +91,7 @@ model Brand {
   updatedAt         DateTime            @updatedAt
   logo              Logo?               @relation(fields: [logoId], references: [id])
   logoId            String?             @unique
-  owner             User?               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner             User?               @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   ownerId           String?
   BrandSubscription BrandSubscription[]
   BrandVote         BrandVote[]
@@ -159,10 +159,10 @@ model Item {
   updatedAt    DateTime       @updatedAt
   brandId      String
   creatorId    String?
-  brand        Brand          @relation(fields: [brandId], references: [id])
+  brand        Brand?         @relation(fields: [brandId], references: [id])
   creator      User?          @relation(fields: [creatorId], references: [id])
   ItemVote     ItemVote[]
-  favoriteItem favoriteItem[]
+  favoriteItem FavoriteItem[]
   images       Image[]        @relation("ItemImage")
   tags         Tag[]          @relation("ItemTags")
   styles       Style[]        @relation("StyleItem")
@@ -245,7 +245,7 @@ model FavoriteStyle {
   @@index([styleId], map: "FavoriteStyle_styleId_fkey")
 }
 
-model favoriteItem {
+model FavoriteItem {
   id        String   @id @default(cuid())
   userId    String
   itemId    String

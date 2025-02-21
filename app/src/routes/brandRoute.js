@@ -316,12 +316,10 @@ router.post("/:brand/comment/:comment", async (req, res) => {
   let commentExists = await comment.find();
 
   if (!commentExists)
-    return res
-      .status(status.NOT_FOUND)
-      .json({
-        message: status[status.NOT_FOUND],
-        data: "comment does not exixt",
-      });
+    return res.status(status.NOT_FOUND).json({
+      message: status[status.NOT_FOUND],
+      data: "comment does not exixt",
+    });
 
   commentData = {
     content: req.body.content,

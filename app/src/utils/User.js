@@ -28,7 +28,7 @@ class User {
 
     user = await this.find({ id, email: this.email });
 
-    return user ? this.update() : this.create();
+    return user ? this.update({ id: user.id }) : this.create();
   }
 
   async create(user = {}) {
@@ -46,6 +46,7 @@ class User {
   }
 
   async update(user = {}) {
+    const id = user.id || this.id;
     const email = user.email || this.email;
     const password = user.password || this.password;
     const name = user.name || this.name;
