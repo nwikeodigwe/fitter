@@ -89,7 +89,7 @@ model Brand {
   description       String?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
-  logo              Logo?               @relation(fields: [logoId], references: [id])
+  logo              Logo?               @relation(fields: [logoId], references: [id], onDelete: Cascade)
   logoId            String?             @unique
   owner             User?               @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   ownerId           String?

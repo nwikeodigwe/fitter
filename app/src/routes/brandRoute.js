@@ -308,9 +308,6 @@ router.post("/:brand/comment/:comment", async (req, res) => {
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], data: {} });
 
-  let commentData = {};
-  commentData.tags = req.body.tags.map((tag) => transform(tag));
-
   let comment = new Comment();
   comment.id = req.params.comment;
   let commentExists = await comment.find();
@@ -321,14 +318,12 @@ router.post("/:brand/comment/:comment", async (req, res) => {
       data: "comment does not exixt",
     });
 
-  commentData = {
-    content: req.body.content,
-    userId: req.user.id,
-    entity: ENTITY,
-    entityId: brand.id,
-  };
-
-  comment = await comment.save(commentData);
+  comment.content = req.body.content;
+  comment.tags = req.body.tags.map((tag) => transform(tag)) || undefined;
+  comment.userId = req.user.id;
+  comment.entity = ENTITY;
+  comment.entityId = brand.id;
+  comment = await comment.save();
 
   return res
     .status(status.CREATED)

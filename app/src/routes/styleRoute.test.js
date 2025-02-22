@@ -113,6 +113,18 @@ describe("Style Route", () => {
   });
 
   describe("GET /", () => {
+    it("Should return 200_OK if style found", async () => {
+      const mockResponse = {
+        status: status.OK,
+        body: { message: status[status.OK] },
+      };
+
+      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
+      const res = await request(server).get(`/api/style`).set(header);
+
+      expect(res.status).toBe(status.OK);
+    });
+
     it("Should return 404_NOT_FOUND if no style found", async () => {
       await prisma.style.deleteMany();
 
@@ -125,20 +137,6 @@ describe("Style Route", () => {
       const res = await request(server).get("/api/style").set(header);
 
       expect(res.status).toBe(status.NOT_FOUND);
-    });
-
-    it("Should return 200_OK if style found", async () => {
-      style = await createTestStyle(user.id, collection.id);
-
-      const mockResponse = {
-        status: status.OK,
-        body: { message: status[status.OK] },
-      };
-
-      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
-      const res = await request(server).get(`/api/style`).set(header);
-
-      expect(res.status).toBe(status.OK);
     });
   });
 
@@ -158,6 +156,8 @@ describe("Style Route", () => {
     });
 
     it("Should return 200_OK if style found", async () => {
+      console.log(user.id);
+      style = await createTestStyle(user.id, collection.id);
       const mockResponse = {
         status: status.OK,
         body: { message: status[status.OK] },
