@@ -59,10 +59,11 @@ describe("Brand route", () => {
       mockResponse = response(status.BAD_REQUEST, status[status.BAD_REQUEST]);
 
       jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .post("/api/brand")
-        .set(header)
-        .send({ tags: "tag1" });
+      const res = await request(server).post("/api/brand").set(header).send({
+        name: faker.commerce.productName(),
+        description: faker.commerce.productDescription(),
+        tags: "tag1",
+      });
 
       expect(res.status).toBe(status.BAD_REQUEST);
     });
@@ -418,7 +419,7 @@ describe("Brand route", () => {
       const res = await request(server)
         .post(`/api/brand/${brand.id}/comment`)
         .set(header)
-        .send(brand);
+        .send(comment);
 
       expect(res.status).toBe(status.BAD_REQUEST);
     });
@@ -451,6 +452,18 @@ describe("Brand route", () => {
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
+    it("Should return 404_NOT_FOUND if comment does not exist", async () => {
+      mockResponse = response(status.NOT_FOUND, status[status.NOT_FOUND]);
+
+      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
+      const res = await request(server)
+        .post(`/api/brand/${brand.id}/comment/invalid_comment_id`)
+        .set(header)
+        .send({ content: faker.lorem.sentence(), tags: ["tags1", "tag1"] });
+
+      expect(res.status).toBe(status.NOT_FOUND);
+    });
+
     it("Should return 400_BAD_REQUEST if tag is not an array", async () => {
       comment = await createTestComment("BRAND", brand.id, user.id);
       mockResponse = response(status.BAD_REQUEST, status[status.BAD_REQUEST]);
@@ -458,7 +471,8 @@ describe("Brand route", () => {
       jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
       const res = await request(server)
         .post(`/api/brand/${brand.id}/comment/${comment.id}`)
-        .set(header);
+        .set(header)
+        .send({ content: faker.lorem.paragraph(), tags: "tag" });
 
       expect(res.status).toBe(status.BAD_REQUEST);
     });

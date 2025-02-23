@@ -54,7 +54,8 @@ describe("Auth route", () => {
       jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
       const res = await request(server)
         .post("/api/auth/signup")
-        .send({ email: user.email });
+        .send({ email: user.email, password: faker.internet.password() });
+
       expect(res.status).toBe(status.BAD_REQUEST);
     });
 
@@ -76,9 +77,7 @@ describe("Auth route", () => {
       mockResponse = response(status.BAD_REQUEST, status[status.BAD_REQUEST]);
 
       jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .post("/api/auth/signup")
-        .send({ email: "" });
+      const res = await request(server).post("/api/auth/signin").send({});
 
       expect(res.status).toBe(status.BAD_REQUEST);
     });
@@ -163,7 +162,9 @@ describe("Auth route", () => {
       mockResponse = response(status.BAD_REQUEST, status[status.BAD_REQUEST]);
 
       jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
-      const res = await request(server).post("/api/auth/reset/invalid_token");
+      const res = await request(server)
+        .post("/api/auth/reset/invalid_token")
+        .send({ password: faker.internet.password() });
 
       expect(res.status).toBe(status.BAD_REQUEST);
     });

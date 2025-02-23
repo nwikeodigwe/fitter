@@ -74,4 +74,4 @@ jobs:
           cd app
           npm install
           npx prisma migrate dev
-          npx jest --verbose
+          npx jest --verbose --runInBand

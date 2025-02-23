@@ -11,6 +11,7 @@ class Collection {
       id: true,
       name: true,
       description: true,
+      tags: true,
       author: { select: { id: true } },
     };
   }
@@ -57,30 +58,33 @@ class Collection {
   }
 
   async update(collection = {}) {
-    const id = collection.id || this.id;
+    this.id = collection.id || this.id;
     const name = collection.name || this.name;
     const description = collection.description || this.description;
     const tags = collection.tags || this.tags;
 
-    collection = await prisma.collection.update({
-      where: { id },
-      data: {
-        ...(name ? { name } : {}),
-        ...(description ? { description } : {}),
-        ...(tags &&
-          tags.length > 0 && {
-            tags: {
-              connectOrCreate: tags.map((tag) => ({
-                where: { name: tag },
-                create: { name: tag },
-              })),
-            },
-          }),
-      },
-      select: this.selectedFields,
-    });
+    collection = await this.find();
 
-    return collection;
+    if (collection)
+      return await prisma.collection.update({
+        where: { id: collection.id },
+        data: {
+          ...(name ? { name } : {}),
+          ...(description ? { description } : {}),
+          ...(tags &&
+            tags.length > 0 && {
+              tags: {
+                connectOrCreate: tags.map((tag) => ({
+                  where: { name: tag },
+                  create: { name: tag },
+                })),
+              },
+            }),
+        },
+        select: this.selectedFields,
+      });
+
+    return null;
   }
 
   find(collection = {}) {
@@ -243,12 +247,18 @@ class Collection {
     });
   }
 
-  delete(id = this.id) {
-    return prisma.collection.delete({
-      where: {
-        id,
-      },
-    });
+  async delete(user = {}) {
+    this.id = user.id || this.id;
+
+    user = await this.find();
+    if (user)
+      return await prisma.collection.delete({
+        where: {
+          id: user.id,
+        },
+      });
+
+    return null;
   }
 }
 

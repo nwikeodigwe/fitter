@@ -93,15 +93,16 @@ router.patch("/:brand", async (req, res) => {
 
   brand.owner = req.user.id;
 
-  brand.name = req.body.name ? transform(req.body.name) : undefined;
+  brand.name = req.body.name ? transform(req.body.name) : null;
 
   if (req.body.tags && !Array.isArray(req.body.tags))
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], data: {} });
 
-  if (req.body.tags && req.body.tags.length > 0)
-    brand.tags = req.body.tags.map((tag) => transform(tag));
+  brand.tags = req.body.tags
+    ? req.body.tags.map((tag) => transform(tag))
+    : null;
 
   brand = await brand.save();
 
@@ -298,7 +299,17 @@ router.post("/:brand/comment/:comment", async (req, res) => {
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: "brand not found" });
 
-  if (!req.body.content || req.body.content == null)
+  let comment = new Comment();
+  comment.id = req.params.comment;
+  let commentExists = await comment.find();
+
+  if (!commentExists)
+    return res.status(status.NOT_FOUND).json({
+      message: status[status.NOT_FOUND],
+      data: {},
+    });
+
+  if (!req.body.content)
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], data: {} });
@@ -307,16 +318,6 @@ router.post("/:brand/comment/:comment", async (req, res) => {
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], data: {} });
-
-  let comment = new Comment();
-  comment.id = req.params.comment;
-  let commentExists = await comment.find();
-
-  if (!commentExists)
-    return res.status(status.NOT_FOUND).json({
-      message: status[status.NOT_FOUND],
-      data: "comment does not exixt",
-    });
 
   comment.content = req.body.content;
   comment.tags = req.body.tags.map((tag) => transform(tag)) || undefined;
