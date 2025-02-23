@@ -371,7 +371,7 @@ router.delete("/:brand", async (req, res) => {
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  if (brandExists.owner.id === req.user.id) brand.delete();
+  if (brandExists.owner.id === req.user.id) await brand.delete();
 
   return res.status(status.NO_CONTENT).end();
 });

@@ -88,7 +88,6 @@ describe("Brand route", () => {
     });
 
     it("Should return 201_CREATED if brand is created", async () => {
-      await createdBrand.delete();
       brand.name = faker.commerce.productName();
 
       mockResponse = response(status.CREATED, status[status.CREATED]);

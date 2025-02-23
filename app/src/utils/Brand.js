@@ -1,4 +1,5 @@
 const prisma = require("../functions/prisma");
+const { logger } = require("./Logger");
 
 class Brand {
   constructor(brand = {}) {
@@ -46,40 +47,6 @@ class Brand {
         name,
         description,
         ...(logo ? { logo: { connect: { id: logo } } } : {}),
-        ...(tags
-          ? {
-              tags: {
-                connectOrCreate: tags.map((tag) => ({
-                  where: { name: tag },
-                  create: { name: tag },
-                })),
-              },
-            }
-          : {}),
-        ...(owner ? { owner: { connect: { id: owner } } } : {}),
-      },
-    });
-
-    this.id = brand.id;
-    return brand;
-  }
-
-  update(brand = {}) {
-    const name = brand.name || this.name;
-    const description = brand.description || this.description;
-    const tags = brand.tags || this.tags;
-    const owner = brand.owner || this.owner;
-    const logo = brand.logo || this.logo;
-    const id = brand.id || this.id;
-
-    return prisma.brand.update({
-      where: {
-        id,
-        ownerId: owner,
-      },
-      data: {
-        ...(name ? { name } : {}),
-        ...(description ? { description } : {}),
         ...(Array.isArray(tags) && tags.length
           ? {
               tags: {
@@ -90,10 +57,50 @@ class Brand {
               },
             }
           : {}),
-        ...(logo ? { logo: { connect: { id: logo } } } : {}),
         ...(owner ? { owner: { connect: { id: owner } } } : {}),
       },
+      select: this.selectedFields,
     });
+
+    this.id = brand.id;
+    return brand;
+  }
+
+  async update(brand = {}) {
+    const name = brand.name || this.name;
+    const description = brand.description || this.description;
+    const tags = brand.tags || this.tags;
+    const owner = brand.owner || this.owner;
+    const logo = brand.logo || this.logo;
+    const id = brand.id || this.id;
+
+    brand = await this.find();
+
+    if (brand)
+      return prisma.brand.update({
+        where: {
+          id,
+          ownerId: owner,
+        },
+        data: {
+          ...(name ? { name } : {}),
+          ...(description ? { description } : {}),
+          ...(Array.isArray(tags) && tags.length
+            ? {
+                tags: {
+                  connectOrCreate: tags.map((tag) => ({
+                    where: { name: tag },
+                    create: { name: tag },
+                  })),
+                },
+              }
+            : {}),
+          ...(logo ? { logo: { connect: { id: logo } } } : {}),
+          ...(owner ? { owner: { connect: { id: owner } } } : {}),
+        },
+        select: this.selectedFields,
+      });
+    return null;
   }
 
   find(brand = {}) {
@@ -103,7 +110,7 @@ class Brand {
     const filters = [id && { id }, name && { name }].filter(Boolean);
 
     if (filters.length === 0) {
-      throw new Error("At least one of id, name, or email must be provided");
+      throw new Error("At least one of id, name must be provided");
     }
 
     return prisma.brand.findFirst({
@@ -281,12 +288,19 @@ class Brand {
     });
   }
 
-  delete(id = this.id) {
-    return prisma.brand.delete({
-      where: {
-        id,
-      },
-    });
+  async delete(user = {}) {
+    this.id = user.id || this.id;
+    this.email = user.email || this.email;
+
+    user = await this.find();
+    if (user)
+      return prisma.brand.delete({
+        where: {
+          id: user.id,
+        },
+      });
+
+    return null;
   }
 }
 

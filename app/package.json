@@ -4,7 +4,7 @@
   "main": "app.js",
   "types": "modules",
   "scripts": {
-    "test": "dotenv -e .env.test -- jest --watchAll --verbose --coverage --maxWorkers=75% --cache  --detectOpenHandles",
+    "test": "dotenv -e .env.test -- jest --watchAll --verbose --coverage --maxWorkers=75% --no-cache  --detectOpenHandles",
     "start": "nodemon src/app.js",
     "prisma:dev": "dotenv -e .env -- npx prisma migrate dev",
     "prisma:prod": "dotenv -e .env.production -- npx prisma migrate deploy",
