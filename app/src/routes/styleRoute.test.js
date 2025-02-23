@@ -156,7 +156,6 @@ describe("Style Route", () => {
     });
 
     it("Should return 200_OK if style found", async () => {
-      console.log(user.id);
       style = await createTestStyle(user.id, collection.id);
       const mockResponse = {
         status: status.OK,

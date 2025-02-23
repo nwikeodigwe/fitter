@@ -9,14 +9,12 @@ const { faker } = require("@faker-js/faker");
 const prisma = require("./prisma");
 
 const createTestUser = async () => {
-  let account = new User();
-  account.email = faker.internet.email();
-  account.password = faker.internet.password();
-  // jest.spyOn(user, "save").mockResolvedValue(mockSavedUser);
-  await account.save();
-  // jest.spyOn(user, "login").mockResolvedValue(mockToken);
-  const login = await account.login();
-  return { account, login };
+  let user = new User();
+  user.email = faker.internet.email();
+  user.password = faker.internet.password();
+  await user.save();
+  const login = await user.login();
+  return { account: user, login };
 };
 
 const createTestImage = async () => {
@@ -95,9 +93,9 @@ const createTestLogo = async (imageId) => {
 };
 
 const createTestResetToken = async (email) => {
-  let reset = new User();
-  reset.email = email;
-  return reset.createResetToken();
+  let user = new User();
+  user.email = email;
+  return user.createResetToken();
 };
 
 const response = (status, message) => {

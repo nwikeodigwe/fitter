@@ -26,7 +26,9 @@ router.post("/signup", async (req, res) => {
 
   const login = await user.login();
 
-  return res.status(status.OK).json({ login });
+  return res
+    .status(status.CREATED)
+    .json({ message: status[status.CREATED], data: login });
 });
 
 router.post("/signin", async (req, res) => {
@@ -39,16 +41,16 @@ router.post("/signin", async (req, res) => {
   user.email = req.body.email;
   user.password = req.body.password;
 
-  let usr = await user.find();
+  let userExists = await user.find();
 
-  if (!usr)
+  if (!userExists)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  const password = await user.passwordMatch();
+  const passwordMatch = await user.passwordMatch();
 
-  if (!password)
+  if (!passwordMatch)
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], data: {} });

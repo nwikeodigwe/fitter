@@ -40,6 +40,32 @@ describe("User route", () => {
     await server.close();
   });
 
+  describe("GET /", () => {
+    it("Should return 404_NOT_FOUND if no user is found", async () => {
+      const mockResponse = {
+        status: status.NOT_FOUND,
+        body: { message: status[status.NOT_FOUND] },
+      };
+
+      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
+      const res = await request(server).get("/api/user").set(header);
+
+      expect(res.status).toBe(status.NOT_FOUND);
+    });
+
+    it("Should return 200_OK if user found", async () => {
+      await createTestUser();
+      const mockResponse = {
+        status: status.OK,
+        body: { message: status[status.OK] },
+      };
+
+      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
+      const res = await request(server).get("/api/user").set(header);
+      expect(res.status).toBe(status.OK);
+    });
+  });
+
   describe("POST /:user/subscribe", () => {
     it("Should return 404_NOT_FOUND if user not found", async () => {
       const mockResponse = {
@@ -331,33 +357,6 @@ describe("User route", () => {
       jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
       const res = await request(server).get("/api/user/me").set(header);
       expect(res.status).toBe(status.OK);
-      user.delete();
-    });
-  });
-
-  describe("GET /", () => {
-    it("Should return 200_OK if user found", async () => {
-      const mockResponse = {
-        status: status.OK,
-        body: { message: status[status.OK] },
-      };
-
-      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
-      const res = await request(server).get("/api/user").set(header);
-      expect(res.status).toBe(status.OK);
-    });
-
-    it("Should return 404_NOT_FOUND if no user is found", async () => {
-      await user.deleteMany();
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
-      const res = await request(server).get("/api/user").set(header);
-
-      expect(res.status).toBe(status.NOT_FOUND);
     });
   });
 });

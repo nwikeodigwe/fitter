@@ -9,7 +9,7 @@ router.get("/", async (req, res) => {
   let user = new User();
   let users = await user.findMany();
 
-  if (!users.length)
+  if (users.length <= 1)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });

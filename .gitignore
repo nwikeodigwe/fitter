@@ -8,7 +8,5 @@
 
 /.vscode
 
-/app/package-lock.json
-
 /mysql
 

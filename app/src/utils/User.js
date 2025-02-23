@@ -1,8 +1,10 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const rug = require("random-username-generator");
+const logger = require("../utils/Logger");
 const prisma = require("../functions/prisma");
 const mail = require("./Mail");
+const transform = require("../functions/transform");
 
 class User {
   constructor(user = {}) {
@@ -42,6 +44,7 @@ class User {
     });
 
     this.id = user.id;
+    this.name = user.name;
     return user;
   }
 
@@ -51,15 +54,20 @@ class User {
     const password = user.password || this.password;
     const name = user.name || this.name;
 
-    user = await prisma.user.update({
-      where: { id: this.id },
-      data: {
-        ...(name ? { name } : {}),
-        ...(email ? { email } : {}),
-        ...(password ? { password: bcrypt.hashSync(password, 10) } : {}),
-      },
-      select: this.selectedFields,
-    });
+    try {
+      user = await prisma.user.update({
+        where: { id },
+        data: {
+          ...(name ? { name } : {}),
+          ...(email ? { email } : {}),
+          ...(password ? { password: bcrypt.hashSync(password, 10) } : {}),
+        },
+        select: this.selectedFields,
+      });
+    } catch (err) {
+      logger.error(err.message);
+      return null;
+    }
 
     return user;
   }
@@ -101,58 +109,64 @@ class User {
     });
   }
 
-  update(data = {}) {
-    return prisma.user.update({
-      where: {
-        id: this.id,
-      },
-      data: {
-        ...data,
-      },
-      select: this.selectedFields,
-    });
-  }
-
   async isSubscribedTo(id) {
-    let subscription = await prisma.userSubscription.findFirst({
-      where: {
-        userId: id,
-        subscriberId: this.id,
-      },
-    });
-
-    return !!subscription;
-  }
-
-  subscribeTo(id) {
-    return prisma.userSubscription.create({
-      data: {
-        subscriber: {
-          connect: {
-            id: this.id,
-          },
-        },
-        user: {
-          connect: {
-            id,
-          },
-        },
-      },
-      select: {
-        id: true,
-      },
-    });
-  }
-
-  unsubscribeFrom(id) {
-    return prisma.userSubscription.delete({
-      where: {
-        userId_subscriberId: {
+    try {
+      let subscription = await prisma.userSubscription.findFirst({
+        where: {
           userId: id,
           subscriberId: this.id,
         },
-      },
-    });
+      });
+
+      return !!subscription;
+    } catch (err) {
+      logger.error(err.message);
+      return false;
+    }
+  }
+
+  async subscribeTo(id) {
+    try {
+      return await prisma.userSubscription.create({
+        data: {
+          subscriber: {
+            connect: {
+              id: this.id,
+            },
+          },
+          user: {
+            connect: {
+              id,
+            },
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+    } catch (err) {
+      logger.error(err.message);
+      return null;
+    }
+  }
+
+  async unsubscribeFrom(id) {
+    try {
+      return await prisma.userSubscription.delete({
+        where: {
+          userId_subscriberId: {
+            userId: id,
+            subscriberId: this.id,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+    } catch (err) {
+      logger.error(err.message);
+      return null;
+    }
   }
 
   async #getPassword() {
@@ -175,7 +189,12 @@ class User {
   }
 
   hashPassword(password = this.password) {
-    return bcrypt.hashSync(password, 10);
+    try {
+      return bcrypt.hashSync(password, 10);
+    } catch (err) {
+      logger.error(err.message);
+      return null;
+    }
   }
 
   async passwordMatch(password = this.password) {
@@ -185,20 +204,21 @@ class User {
 
   async generateAccessToken(user = {}, secret = process.env.JWT_SECRET) {
     this.id = user.id || this.id;
+    this.email = user.email || this.email;
     user = await this.find();
 
-    const name = user.name || this.name;
-    const email = user.email || this.email;
+    if (user)
+      return jwt.sign(
+        {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        },
+        secret,
+        { expiresIn: "1h" }
+      );
 
-    return jwt.sign(
-      {
-        id: this.id,
-        name,
-        email,
-      },
-      secret,
-      { expiresIn: "1h" }
-    );
+    return null;
   }
 
   async generateRefreshToken(
@@ -207,13 +227,20 @@ class User {
   ) {
     this.id = user.id || this.id;
     user = await this.find();
-    return jwt.sign({ id: this.id }, secret, {
-      expiresIn: "7d",
-    }); // Should be process.env.JWT_REFRESH_SECRET
+    if (user)
+      return jwt.sign({ id: user.id }, secret, {
+        expiresIn: "7d",
+      });
+    return null;
   }
 
   verifyToken(token, secret = process.env.JWT_SECRET) {
-    return jwt.verify(token, secret);
+    try {
+      return jwt.verify(token, secret);
+    } catch (err) {
+      logger.error(err.message);
+      return false;
+    }
   }
 
   async login() {
@@ -246,7 +273,7 @@ class User {
     return mail.send(type[template].template);
   }
 
-  async createResetToken() {
+  async createResetToken(user = {}) {
     await this.#resetAllToken();
 
     const salt = await bcrypt.genSalt(10);
@@ -256,16 +283,23 @@ class User {
       .toLowerCase()
       .replace(/[^a-zA-Z0-9]/g, "");
 
-    return prisma.reset.create({
-      data: {
-        token: token,
-        expires: new Date(Date.now() + 600000),
-        user: { connect: { email: this.email } },
-      },
-      select: {
-        token: true,
-      },
-    });
+    this.id = user.id || this.id;
+    this.email = user.email || this.email;
+    user = await this.find();
+
+    if (user) {
+      return prisma.reset.create({
+        data: {
+          token: token,
+          expires: new Date(Date.now() + 600000),
+          user: { connect: { id: user.id } },
+        },
+        select: {
+          token: true,
+        },
+      });
+    }
+    return null;
   }
 
   #resetAllToken() {
@@ -297,13 +331,20 @@ class User {
     });
   }
 
-  delete(id = this.id) {
-    return prisma.user.delete({
-      where: {
-        id,
-      },
-      select: this.selectedFields,
-    });
+  async delete(user = {}) {
+    this.id = user.id || this.id;
+    this.email = user.email || this.email;
+
+    user = await this.find();
+    if (user)
+      return prisma.user.delete({
+        where: {
+          id: user.id,
+        },
+        select: this.selectedFields,
+      });
+
+    return null;
   }
 
   deleteMany() {
