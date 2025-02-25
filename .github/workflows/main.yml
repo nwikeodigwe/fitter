@@ -1,4 +1,4 @@
-name: Relay app CI pipeline
+name: CI pipeline
 
 on:
   push:
@@ -6,18 +6,17 @@ on:
       - main
   pull_request:
     branches:
-      - main  
+      - main
   workflow_dispatch:
 
 jobs:
-  
   build-and-test:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [20, 21] 
-        
+        node-version: [20, 21]
+
     services:
       mysql:
         image: mysql:latest
@@ -32,41 +31,47 @@ jobs:
           --health-retries=3
 
     env:
-        CI: true
-           
+      CI: true
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
-    - name: Wait for MySQL to be ready
-      run: |
-        until mysqladmin ping -h 127.0.0.1 -u${{ secrets.MYSQL_USER }} -p${{ secrets.MYSQL_PASSWORD }} --silent; do
-          echo "Waiting for database to connect..."
-          sleep 2
-        done
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
 
-    - name: Create test database
-      run: |
-        mysql -h 127.0.0.1 -u${{ secrets.MYSQL_USER }} -p${{ secrets.MYSQL_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS ${{ secrets.MYSQL_DB }};"  
+      - name: Wait for MySQL to be ready
+        run: |
+          until mysqladmin ping -h 127.0.0.1 -u${{ secrets.MYSQL_USER }} -p${{ secrets.MYSQL_PASSWORD }} --silent; do
+            echo "Waiting for database to connect..."
+            sleep 2
+          done
 
-    - name: Install dependencies and run tests
-      env:
-        NODE_ENV: test
-        DATABASE_URL: "mysql://${{ secrets.MYSQL_USER }}:${{ secrets.MYSQL_PASSWORD }}@localhost:${{ secrets.MYSQL_PORT }}/${{ secrets.MYSQL_DB }}"
-        FACEBOOK_CLIENT_SECRET: ${{ secrets.FACEBOOK_CLIENT_SECRET }}
-        FACEBOOK_CLIENT_ID: ${{ secrets.FACEBOOK_CLIENT_ID }}
-        RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-        JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      run: |
-        cd backend
-        npm install
-        npx prisma migrate dev
-        npx jest --verbose --runInBand
-      
+      - name: Create test database
+        run: |
+          mysql -h 127.0.0.1 -u${{ secrets.MYSQL_USER }} -p${{ secrets.MYSQL_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS ${{ secrets.MYSQL_DB }};"
 
-
+      - name: Install dependencies and run tests
+        env:
+          NODE_ENV: test
+          DATABASE_URI: "mysql://${{ secrets.MYSQL_USER }}:${{ secrets.MYSQL_PASSWORD }}@localhost:${{ secrets.MYSQL_PORT }}/${{ secrets.MYSQL_DB }}"
+          FACEBOOK_CLIENT_SECRET: ${{ secrets.FACEBOOK_CLIENT_SECRET }}
+          FACEBOOK_CLIENT_ID: ${{ secrets.FACEBOOK_CLIENT_ID }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+        run: |
+          cd app
+          npm install
+          npx prisma migrate dev
+          npx jest --verbose --runInBand

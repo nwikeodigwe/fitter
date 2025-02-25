@@ -1,6 +1,12 @@
-/backend/node_modules
-/backend/dist
-/backend/coverage
+/app/node_modules
+/app/dist
+/app/coverage
 
-/backend/*.env*
-/backend/*.log
+/app/*.env*
+/app/*.log
+/app/logs
+
+/.vscode
+
+/mysql
+
