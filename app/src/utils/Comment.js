@@ -51,6 +51,42 @@ class Comment {
     return comment;
   }
 
+  async create(comment = {}) {
+    const content = comment.content || this.content;
+    const entity = comment.entity || this.entity;
+    const tags = comment.tags || this.tags;
+    const userId = comment.userId || this.userId;
+    const entityId = comment.entityId || this.entityId;
+
+    comment = await prisma.comment.create({
+      data: {
+        content,
+        ...(tags && {
+          tag: {
+            connectOrCreate: tags.map((tag) => ({
+              where: { name: tag },
+              create: { name: tag },
+            })),
+          },
+        }),
+        author: {
+          connect: {
+            id: userId,
+          },
+        },
+        entity,
+        entityId,
+        ...(this.id && {
+          parent: { connect: { id: this.id } },
+        }),
+      },
+      select: this.selectedFields,
+    });
+
+    this.id = comment.id;
+    return comment;
+  }
+
   find(id = this.id) {
     return prisma.comment.findFirst({
       where: { id },
