@@ -94,7 +94,7 @@ class Collection {
     const filters = [id && { id }, name && { name }].filter(Boolean);
 
     if (filters.length === 0) {
-      throw new Error("At least one of id, name, or email must be provided");
+      throw new Error("At least one of id or name must be provided");
     }
 
     return prisma.collection.findFirst({

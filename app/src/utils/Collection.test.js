@@ -7,7 +7,6 @@ describe("Collection", () => {
   let user;
   let collection;
   let collectionData;
-  let mockUserReturnValue;
 
   beforeAll(() => {
     user = new User();
@@ -47,7 +46,7 @@ describe("Collection", () => {
       user.email = faker.internet.email();
       user.password = faker.internet.password();
       await user.save();
-      collection.tags = ["tag1", "tag2"];
+      collection.tags = collectionData.tags;
       collection.authorId = user.id;
       const result = await collection.create();
 
@@ -66,7 +65,18 @@ describe("Collection", () => {
       expect(result).toBeNull();
     });
 
+    it("Should throw error if id, name  not provided", async () => {
+      collection.id = undefined;
+      collection.name = undefined;
+
+      expect(() => collection.find({})).toThrow(
+        "At least one of id or name must be provided"
+      );
+    });
+
     it("Should return collection object if found", async () => {
+      collection.name = collectionData.name;
+      collection.description = collectionData.description;
       await collection.save();
       const result = await collection.find();
 
@@ -100,9 +110,9 @@ describe("Collection", () => {
     it("Should return null if collection.id invalid", async () => {
       await collection.delete();
       collection.id = "invalid_collection_id";
-      const update = await collection.update();
+      const result = await collection.update();
 
-      expect(update).toBeNull();
+      expect(result).toBeNull();
     });
 
     it("should return the updated user object", async () => {
