@@ -76,7 +76,7 @@ const createTestComment = async (entity, entityId, userId) => {
   comment.tags = ["tag1", "tag2"];
   comment.content = faker.commerce.productDescription();
   comment.userId = userId;
-  await comment.save();
+  await comment.create();
   return comment;
 };
 

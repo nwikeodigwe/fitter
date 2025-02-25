@@ -152,7 +152,8 @@ router.post("/:style/comment/:comment", async (req, res) => {
   comment.entity = ENTITY;
   comment.entityId = req.params.style;
   comment.userId = req.user.id;
-  comment = await comment.save();
+  comment.parent = req.params.comment;
+  comment = await comment.create();
 
   return res
     .status(status.CREATED)

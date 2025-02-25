@@ -2,12 +2,13 @@ const prisma = require("../functions/prisma");
 
 class Comment {
   constructor(comment = {}) {
-    this.id = comment.id || null;
-    this.content = comment.content || null;
-    this.entity = comment.entity || null;
-    this.entityId = comment.entityId || null;
-    this.tags = comment.tags || null;
-    this.userId = comment.userId || null;
+    this.id = comment.id || undefined;
+    this.content = comment.content || undefined;
+    this.entity = comment.entity || undefined;
+    this.entityId = comment.entityId || undefined;
+    this.tags = comment.tags || undefined;
+    this.userId = comment.userId || undefined;
+    this.parent = comment.parenr || undefined;
     this.selectedFields = {
       id: true,
       author: { select: { id: true, name: true } },
@@ -16,11 +17,26 @@ class Comment {
   }
 
   async save(comment = {}) {
+    this.id = comment.id || this.id;
+    this.content = comment.content || this.content;
+    this.entity = comment.entity || this.entity;
+    this.tags = comment.tags || this.tags;
+    this.userId = comment.userId || this.userId;
+    this.entityId = comment.entityId || this.entityId;
+    this.parent = comment.parent || this.parent;
+
+    comment = await this.find();
+
+    return comment ? this.update() : this.create();
+  }
+
+  async create(comment = {}) {
     const content = comment.content || this.content;
     const entity = comment.entity || this.entity;
     const tags = comment.tags || this.tags;
     const userId = comment.userId || this.userId;
     const entityId = comment.entityId || this.entityId;
+    const parent = comment.parent || this.parent;
 
     comment = await prisma.comment.create({
       data: {
@@ -40,8 +56,8 @@ class Comment {
         },
         entity,
         entityId,
-        ...(this.id && {
-          parent: { connect: { id: this.id } },
+        ...(parent && {
+          parent: { connect: { id: parent } },
         }),
       },
       select: this.selectedFields,
@@ -51,16 +67,16 @@ class Comment {
     return comment;
   }
 
-  async create(comment = {}) {
+  update(comment = {}) {
     const content = comment.content || this.content;
-    const entity = comment.entity || this.entity;
     const tags = comment.tags || this.tags;
-    const userId = comment.userId || this.userId;
-    const entityId = comment.entityId || this.entityId;
 
-    comment = await prisma.comment.create({
+    return prisma.comment.update({
+      where: {
+        id: this.id,
+      },
       data: {
-        content,
+        ...(content && { content }),
         ...(tags && {
           tag: {
             connectOrCreate: tags.map((tag) => ({
@@ -69,22 +85,9 @@ class Comment {
             })),
           },
         }),
-        author: {
-          connect: {
-            id: userId,
-          },
-        },
-        entity,
-        entityId,
-        ...(this.id && {
-          parent: { connect: { id: this.id } },
-        }),
       },
       select: this.selectedFields,
     });
-
-    this.id = comment.id;
-    return comment;
   }
 
   find(id = this.id) {
@@ -101,12 +104,16 @@ class Comment {
     });
   }
 
-  delete(id = this.id) {
-    return prisma.comment.delete({
-      where: {
-        id,
-      },
-    });
+  async delete(user = {}) {
+    this.id = user.id || this.id;
+    user = await this.find();
+    if (user)
+      return prisma.comment.delete({
+        where: {
+          id: user.id,
+        },
+      });
+    return null;
   }
 }
 

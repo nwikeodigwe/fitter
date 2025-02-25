@@ -297,7 +297,7 @@ router.post("/:brand/comment/:comment", async (req, res) => {
   if (!brand)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: "brand not found" });
+      .json({ message: status[status.NOT_FOUND], data: {} });
 
   let comment = new Comment();
   comment.id = req.params.comment;
@@ -324,7 +324,8 @@ router.post("/:brand/comment/:comment", async (req, res) => {
   comment.userId = req.user.id;
   comment.entity = ENTITY;
   comment.entityId = brand.id;
-  comment = await comment.save();
+  comment.parent = req.params.comment;
+  comment = await comment.create();
 
   return res
     .status(status.CREATED)
