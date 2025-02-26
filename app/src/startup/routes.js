@@ -8,6 +8,7 @@ const collectionRoute = require("../routes/collectionRoute");
 const error = require("../middleware/error");
 const morgan = require("../middleware/morgan");
 const auth = require("../middleware/auth");
+const limiter = require("../middleware/limiter");
 const passport = require("passport");
 const helmet = require("helmet");
 const cors = require("cors");
@@ -15,6 +16,7 @@ const cors = require("cors");
 module.exports = (app) => {
   app.use(cors());
   app.use(helmet());
+  app.use(limiter);
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(passport.initialize());
