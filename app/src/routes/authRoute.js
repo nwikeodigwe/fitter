@@ -1,6 +1,7 @@
 const express = require("express");
 const mailconf = require("../config/mailconf");
 const User = require("../utils/User");
+const rateLimit = require("express-rate-limit");
 const { status } = require("http-status");
 const router = express.Router();
 
