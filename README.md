@@ -18,6 +18,7 @@ You can contribute to this repository otherwise fork and extend features. I have
 run `docker compose up --build`
 
 You can also run test
+
 run `docker compose exec -it app npm test`
 
 # Data Model
@@ -196,80 +197,143 @@ run `docker compose exec -it app npm test`
 
 **Auth**
 POST api/auth/signup
+
 POST api/auth/signin
+
 POST api/auth/reset
+
 POST api/auth/reset/:token
 
 **User**
 GET api/user
+
 GET api/user/:user
+
 GET api/user/me
+
 PATCH api/user/me
+
 GET api/user/profile
+
 PATCH api/user/profile
+
 GET api/user/style
+
 POST api/user/subscribe
+
 DELETE api/user/unsubscribe
+
 PATCH api/user/password
 
 **Collection**
 POST api/collection
+
 GET api/collection
+
 GET api/collection/:collection
+
 PATCH api/collection/:collection
+
 DELETE api/collection/collection
+
 GET api/collection/:collection/styles
+
 POST api/collection/:collection/favorite
+
 DELETE api/collection/:collection/unfavorite
+
 PUT api/collection/:collection/upvote
+
 PUT api/collection/:collection/downvote
+
 DELETE api/collection/:collection/unvote
 
 **Brand**
+
 POST api/brand
+
 GET api/brand
+
 GET api/brand/:brand
+
 PATCH api/brand/:brand
+
 PUT api/brand/:brand/upvote
+
 PUT api/brand/:brand/downvote
+
 DELETE api/brand/:brand/unvote
+
 POST api/brand/:brand/favorite
+
 POST api/brand/:brand/comment
+
 GET api/brand/:brand/comment
+
 POST api/brand/:brand/comment/:comment
+
 POST api/brand/:brand/subscribe
+
 DELETE api/brand/:brand/unsubscribe
+
 DELETE api/brand/comment/:comment
+
 DELETE api/brand/:brand
 
 **Style**
+
 POST api/style
+
 GET api/style
+
 GET api/style/:style
+
 GET api/style/user/:user
+
 PATCH api/style/:style
+
 GET api/style/:style/publish
+
 PATCH api/style/:style/unpublish
+
 PUT api/style/:style/upvote
+
 PUT api/style/:style/downvote
+
 DELETE api/style/:style/unvote
+
 POST api/style/:style/favorite
+
 POST api/style/:style/comment
+
 GET api/style/:style/comment
+
 POST api/style/:style/comment/:comment
+
 DELETE api/style/comment/:comment
+
 DELETE api/style/:style
 
 **Item**
+
 POST api/item
+
 GET api/item
+
 GET api/item/:item
+
 GET api/item/user/:user
+
 PATCH api/item/:item
+
 PUT api/item/:item/upvote
+
 PUT api/item/:item/downvote
+
 DELETE api/item/:item/unvote
+
 POST api/item/:item/favorite
+
 DELETE POST api/item/:item
 
 ## Author
