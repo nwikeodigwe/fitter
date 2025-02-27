@@ -1,9 +1,11 @@
 # Wardrobe fitter app API
 
-![Build Status](https://github.com/nwikeodigwe/fitter/actions/workflows/main.yaml/badge.svg)
+[![CI pipeline](https://github.com/nwikeodigwe/fitter/actions/workflows/main.yml/badge.svg)](https://github.com/nwikeodigwe/fitter/actions/workflows/main.yml)
+[![CodeQL](https://github.com/nwikeodigwe/fitter/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/nwikeodigwe/fitter/actions/workflows/github-code-scanning/codeql)
+
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Nodejs ](https://img.shields.io/badge/node_v20.17.0-blue.svg)](https://shields.io/)
-[![NPM](https://img.shields.io/badge/npm-10.9.2-green.svg)] (https://shields.io/)
+[![Nodejs ](https://img.shields.io/badge/node_v20.17.0-blue.svg)]
+![NPM](https://img.shields.io/badge/npm-10.9.2-green.svg)
 
 # Description
 
