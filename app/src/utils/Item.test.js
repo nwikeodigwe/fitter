@@ -3,7 +3,7 @@ const Item = require("./Item");
 const User = require("./User");
 const Brand = require("./Brand");
 const Image = require("./Image");
-const { faker, de } = require("@faker-js/faker");
+const { faker } = require("@faker-js/faker");
 
 describe("Item", () => {
   let item;

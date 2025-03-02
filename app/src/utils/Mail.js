@@ -25,12 +25,6 @@ class Mail {
     return tmp(context);
   }
 
-  test() {
-    return {
-      options: this.htmlContent,
-    };
-  }
-
   content(htmlContent) {
     this.htmlContent = htmlContent;
     this.to = htmlContent.email;
@@ -40,20 +34,15 @@ class Mail {
   }
 
   async send(emailTemplate) {
-    try {
-      await this.resend.emails.send({
-        from: this.from,
-        to: this.to,
-        subject: this.subject,
-        html: this.template(emailTemplate, {
-          ...this.htmlContent,
-          ...this.attr,
-        }),
-      });
-      return true;
-    } catch (error) {
-      return false;
-    }
+    return await this.resend.emails.send({
+      from: this.from,
+      to: this.to,
+      subject: this.subject,
+      html: this.template(emailTemplate, {
+        ...this.htmlContent,
+        ...this.attr,
+      }),
+    });
   }
 }
 
