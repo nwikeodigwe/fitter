@@ -14,7 +14,8 @@ class Item {
       id: true,
       name: true,
       description: true,
-      images: true,
+      images: { select: { id: true, url: true } },
+      brand: { select: { id: true, name: true } },
       tags: true,
       creator: { select: { id: true } },
     };
@@ -282,12 +283,19 @@ class Item {
     });
   }
 
-  delete(id = this.id) {
-    return prisma.item.delete({
-      where: {
-        id,
-      },
-    });
+  async delete(item = {}) {
+    this.id = item.id || this.id;
+
+    item = await this.find();
+    if (item)
+      return prisma.item.delete({
+        where: {
+          id: item.id,
+        },
+        select: { id: true },
+      });
+
+    return null;
   }
 
   deleteMany() {
