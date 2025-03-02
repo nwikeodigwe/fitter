@@ -4,7 +4,7 @@
 [![CodeQL](https://github.com/nwikeodigwe/fitter/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/nwikeodigwe/fitter/actions/workflows/github-code-scanning/codeql)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Nodejs ](https://img.shields.io/badge/node_v20.17.0-blue.svg)]
+![Nodejs ](https://img.shields.io/badge/node_v20.17.0-blue.svg)
 ![NPM](https://img.shields.io/badge/npm-10.9.2-green.svg)
 
 # Description
