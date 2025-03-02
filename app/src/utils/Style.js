@@ -13,6 +13,7 @@ class Style {
       id: true,
       name: true,
       description: true,
+      tags: { select: { name: true } },
       collection: {
         select: {
           name: true,
