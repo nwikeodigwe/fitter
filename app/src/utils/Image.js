@@ -20,7 +20,7 @@ class Image {
   async create(url = this.url) {
     const image = await prisma.image.create({
       data: { url },
-      select: { id: true },
+      select: this.selectedFields,
     });
 
     this.id = image.id;
@@ -38,6 +38,7 @@ class Image {
       data: {
         url,
       },
+      select: this.selectedFields,
     });
   }
 
@@ -50,10 +51,17 @@ class Image {
     });
   }
 
-  delete() {
-    return prisma.image.delete({
-      where: { id: this.id },
-    });
+  async delete(image = {}) {
+    this.id = image.id || this.id;
+
+    image = await this.find();
+
+    if (image)
+      return prisma.image.delete({
+        where: { id: this.id },
+      });
+
+    return null;
   }
 }
 
