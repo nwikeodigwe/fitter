@@ -2,8 +2,8 @@
   "swagger": "2.0",
   "info": {
     "version": "1.0.0",
-    "title": "Relay API",
-    "description": "API documentation for the Relay application"
+    "title": "Wardrobe Fitter API",
+    "description": "API documentation for the Wardrobe Fitter application"
   },
   "host": "localhost:3000",
   "basePath": "/api",
@@ -11,6 +11,38 @@
   "consumes": ["application/json"],
   "produces": ["application/json"],
   "paths": {
+    "/auth/signup": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Register a new user",
+        "parameters": [
+          {
+            "name": "user",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "password": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "User created successfully"
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "tags": ["Authentication"],
@@ -51,25 +83,24 @@
         }
       }
     },
-    "/auth/register": {
+    "/auth/refresh/token": {
       "post": {
         "tags": ["Authentication"],
-        "summary": "User registration",
+        "summary": "Refresh access token",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
         "parameters": [
           {
-            "name": "user",
+            "name": "token",
             "in": "body",
             "required": true,
             "schema": {
               "type": "object",
               "properties": {
-                "email": {
-                  "type": "string"
-                },
-                "password": {
-                  "type": "string"
-                },
-                "username": {
+                "token": {
                   "type": "string"
                 }
               }
@@ -77,16 +108,21 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": "User created successfully"
-          },
-          "400": {
-            "description": "Invalid input"
+          "200": {
+            "description": "Token refreshed successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "token": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/users": {
+    "/user": {
       "get": {
         "tags": ["Users"],
         "summary": "Get all users",
@@ -108,16 +144,420 @@
                   },
                   "email": {
                     "type": "string"
-                  },
-                  "username": {
-                    "type": "string"
                   }
                 }
               }
             }
-          },
-          "401": {
-            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/user/me": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get current user profile",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current user profile"
+          }
+        }
+      }
+    },
+    "/user/{user}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get specific user profile",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile"
+          }
+        }
+      }
+    },
+    "/user/{user}/collection": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get user's collections",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User's collections"
+          }
+        }
+      }
+    },
+    "/collection": {
+      "get": {
+        "tags": ["Collections"],
+        "summary": "Get all collections",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of collections"
+          }
+        }
+      }
+    },
+    "/collection/{collection}": {
+      "get": {
+        "tags": ["Collections"],
+        "summary": "Get specific collection",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Collection details"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Collections"],
+        "summary": "Delete a collection",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Collection deleted successfully"
+          }
+        }
+      }
+    },
+    "/collection/{collection}/favorite": {
+      "post": {
+        "tags": ["Collections"],
+        "summary": "Favorite a collection",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Collection favorited successfully"
+          }
+        }
+      }
+    },
+    "/collection/{collection}/unfavorite": {
+      "delete": {
+        "tags": ["Collections"],
+        "summary": "Unfavorite a collection",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Collection unfavorited successfully"
+          }
+        }
+      }
+    },
+    "/collection/{collection}/upvote": {
+      "put": {
+        "tags": ["Collections"],
+        "summary": "Upvote a collection",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Collection upvoted successfully"
+          }
+        }
+      }
+    },
+    "/collection/{collection}/unvote": {
+      "delete": {
+        "tags": ["Collections"],
+        "summary": "Remove upvote from collection",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Upvote removed successfully"
+          }
+        }
+      }
+    },
+    "/style": {
+      "get": {
+        "tags": ["Styles"],
+        "summary": "Get all styles",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of styles"
+          }
+        }
+      }
+    },
+    "/style/{style}": {
+      "get": {
+        "tags": ["Styles"],
+        "summary": "Get specific style",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "style",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Style details"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Styles"],
+        "summary": "Delete a style",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "style",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Style deleted successfully"
+          }
+        }
+      }
+    },
+    "/style/{style}/comments": {
+      "get": {
+        "tags": ["Styles"],
+        "summary": "Get comments on a style",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "style",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of comments"
+          }
+        }
+      }
+    },
+    "/item": {
+      "get": {
+        "tags": ["Items"],
+        "summary": "Get all items",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of items"
+          }
+        }
+      }
+    },
+    "/item/{item}": {
+      "get": {
+        "tags": ["Items"],
+        "summary": "Get specific item",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "item",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item details"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Items"],
+        "summary": "Delete an item",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "item",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Item deleted successfully"
+          }
+        }
+      }
+    },
+    "/item/{item}/favorite": {
+      "post": {
+        "tags": ["Items"],
+        "summary": "Favorite an item",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "item",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Item favorited successfully"
+          }
+        }
+      }
+    },
+    "/brand": {
+      "get": {
+        "tags": ["Brands"],
+        "summary": "Get all brands",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of brands"
           }
         }
       }
