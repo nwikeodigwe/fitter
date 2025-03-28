@@ -12,6 +12,8 @@ const limiter = require("../middleware/limiter");
 const passport = require("passport");
 const helmet = require("helmet");
 const cors = require("cors");
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocument = require("../swagger.json");
 
 module.exports = (app) => {
   app.use(cors());
@@ -20,6 +22,8 @@ module.exports = (app) => {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(passport.initialize());
+  app.use("/doc", swaggerUi.serve);
+  app.get("/docs", swaggerUi.setup(swaggerDocument));
   app.use("/api/auth", authRoute);
   app.use(auth);
   app.use("/api/user", userRoute);
