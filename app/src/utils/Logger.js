@@ -1,5 +1,4 @@
 const winston = require("winston");
-require("express-async-errors");
 
 class Logger {
   constructor() {
@@ -54,4 +53,5 @@ class Logger {
   }
 }
 
-module.exports = new Logger();
+const logger = new Logger();
+module.exports = logger;

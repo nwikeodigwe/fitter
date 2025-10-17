@@ -63,6 +63,13 @@ class Image {
 
     return null;
   }
+
+  deleteMany(where = {}) {
+    return prisma.deleteMany({
+      where,
+    });
+  }
 }
 
-module.exports = Image;
+const image = new Image();
+module.exports = { image, Image };

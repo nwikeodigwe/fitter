@@ -1,10 +1,12 @@
 const prisma = require("../functions/prisma");
+const slugify = require("slugify");
 
 class Collection {
   constructor(collection = {}) {
     this.collection = {};
     this.id = collection.id || null;
-    this.title = collection.name || null;
+    this.name = collection.name || null;
+    this.slug = collection.slug || this.#createSlug(this.name) || null;
     this.description = collection.description || null;
     this.authorId = collection.authorId || null;
     this.selectedFields = {
@@ -16,9 +18,14 @@ class Collection {
     };
   }
 
+  #createSlug(name) {
+    return name ? slugify(name, { lower: true }) : null;
+  }
+
   async save(collection = {}) {
     this.name = collection.name || this.name;
     this.description = collection.description || this.description;
+    this.slug = collection.slug || this.slug || this.#createSlug(this.name);
     this.tags = collection.tags || this.tags;
     this.id = collection.id || this.id;
     this.authorId = collection.authorId || this.authorId;
@@ -31,13 +38,16 @@ class Collection {
   async create(collection = {}) {
     const name = collection.name || this.name;
     const description = collection.description || this.description;
+    const slug = collection.slug || this.slug || this.#createSlug(name);
     const tags = collection.tags || this.tags;
     const authorId = collection.authorId || this.authorId;
 
     collection = await prisma.collection.create({
       data: {
         ...(name ? { name } : {}),
+        slug: this.#createSlug(name),
         ...(description ? { description } : {}),
+        ...(slug ? { slug } : {}),
         ...(tags && tags.length > 0
           ? {
               tags: {
@@ -60,6 +70,7 @@ class Collection {
   async update(collection = {}) {
     this.id = collection.id || this.id;
     const name = collection.name || this.name;
+    const slug = collection.slug || this.slug;
     const description = collection.description || this.description;
     const tags = collection.tags || this.tags;
 
@@ -70,6 +81,7 @@ class Collection {
         where: { id: collection.id },
         data: {
           ...(name ? { name } : {}),
+          ...(slug ? { slug } : {}),
           ...(description ? { description } : {}),
           ...(tags &&
             tags.length > 0 && {
@@ -90,11 +102,14 @@ class Collection {
   find(collection = {}) {
     const id = collection.id || this.id;
     const name = collection.name || this.name;
+    const slug = collection.slug || this.slug;
 
-    const filters = [id && { id }, name && { name }].filter(Boolean);
+    const filters = [id && { id }, name && { name }, slug && { slug }].filter(
+      Boolean
+    );
 
     if (filters.length === 0) {
-      throw new Error("At least one of id or name must be provided");
+      throw new Error("At least one of id, name or slug must be provided");
     }
 
     return prisma.collection.findFirst({
@@ -113,10 +128,35 @@ class Collection {
     });
   }
 
-  findMany(where = {}) {
+  findMany(where = {}, limit = 20, offset = 0) {
     return prisma.collection.findMany({
       where,
       select: this.selectedFields,
+      take: limit,
+      skip: offset,
+    });
+  }
+
+  getTags(
+    where = {},
+    limit = 10,
+    offset = 0,
+    orderBy = { collections: { _count: "desc" } }
+  ) {
+    return prisma.tag.findMany({
+      where,
+      select: {
+        name: true,
+        collections: {
+          select: { name: true },
+          distinct: ["name"],
+          take: limit / 2,
+        },
+      },
+      distinct: ["name"],
+      take: limit,
+      skip: offset,
+      orderBy,
     });
   }
 
@@ -147,7 +187,7 @@ class Collection {
     });
   }
 
-  async isFavorited(userId, collectionId = this.id) {
+  async isFavorite(userId, collectionId = this.id) {
     const favorite = await prisma.favoriteCollection.findFirst({
       where: {
         userId_collectionId: {
@@ -262,4 +302,5 @@ class Collection {
   }
 }
 
-module.exports = Collection;
+const collection = new Collection();
+module.exports = { collection, Collection };

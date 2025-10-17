@@ -1,15 +1,14 @@
-const User = require("../utils/User");
-const Image = require("../utils/Image");
-const Brand = require("../utils/Brand");
-const Collection = require("../utils/Collection");
-const Style = require("../utils/Style");
-const Item = require("../utils/Item");
-const Comment = require("../utils/Comment");
+const { user } = require("../utils/User");
+const { image } = require("../utils/Image");
+const { brand } = require("../utils/Brand");
+const { collection } = require("../utils/Collection");
+const { style } = require("../utils/Style");
+const { item } = require("../utils/Item");
+const { comment } = require("../utils/Comment");
 const { faker } = require("@faker-js/faker");
 const prisma = require("./prisma");
 
 const createTestUser = async () => {
-  let user = new User();
   user.email = faker.internet.email();
   user.password = faker.internet.password();
   await user.save();
@@ -18,7 +17,6 @@ const createTestUser = async () => {
 };
 
 const createTestImage = async () => {
-  let image = new Image();
   image.url = faker.image.url();
   // jest.spyOn(image, "save").mockResolvedValue(mockSavedImage);
   await image.save();
@@ -26,7 +24,6 @@ const createTestImage = async () => {
 };
 
 const createTestCollection = async (userId) => {
-  let collection = new Collection();
   collection.name = faker.commerce.product();
   collection.description = faker.commerce.productDescription();
   collection.authorId = userId;
@@ -36,7 +33,6 @@ const createTestCollection = async (userId) => {
 };
 
 const createTestStyle = async (user, collection) => {
-  let style = new Style();
   style.name = faker.commerce.productName();
   style.description = faker.commerce.productDescription();
   style.author = user;
@@ -47,7 +43,6 @@ const createTestStyle = async (user, collection) => {
 };
 
 const createTestBrand = async (ownerId, logoId) => {
-  let brand = new Brand();
   brand.name = faker.commerce.product();
   brand.description = faker.commerce.productName();
   brand.tags = ["tag1", "tag2"];
@@ -58,7 +53,6 @@ const createTestBrand = async (ownerId, logoId) => {
 };
 
 const createTestItem = async (brandName, userId, imageId) => {
-  let item = new Item();
   item.name = faker.commerce.product();
   item.description = faker.commerce.productName();
   item.tags = ["tag1", "tag2"];
@@ -70,7 +64,6 @@ const createTestItem = async (brandName, userId, imageId) => {
 };
 
 const createTestComment = async (entity, entityId, userId) => {
-  let comment = new Comment();
   comment.entity = entity;
   comment.entityId = entityId;
   comment.tags = ["tag1", "tag2"];
@@ -93,7 +86,6 @@ const createTestLogo = async (imageId) => {
 };
 
 const createTestResetToken = async (email) => {
-  let user = new User();
   user.email = email;
   return user.createResetToken();
 };

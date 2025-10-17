@@ -1,9 +1,11 @@
 const prisma = require("../functions/prisma");
+const slugify = require("slugify");
 
 class Style {
   constructor(style = {}) {
     this.id = style.id;
     this.name = style.name;
+    this.slug = this.slug || null;
     this.description = style.description;
     this.collection = style.collection;
     this.tags = style.tags || [];
@@ -12,6 +14,7 @@ class Style {
     this.selectedFields = {
       id: true,
       name: true,
+      slug: true,
       description: true,
       tags: { select: { name: true } },
       collection: {
@@ -26,9 +29,14 @@ class Style {
     };
   }
 
+  #createSlug(name) {
+    return name ? slugify(name, { lower: true }) : null;
+  }
+
   async save(style = {}) {
     this.id = style.id || this.id;
     this.name = style.name || this.name;
+    this.slug = style.slug || this.slug || this.#createSlug(this.name);
     this.description = style.description || this.description;
     this.tags = style.tags || this.tags;
     this.author = style.author || this.author;
@@ -41,6 +49,7 @@ class Style {
 
   async create(style = {}) {
     const name = style.name || this.name;
+    const slug = style.slug || this.slug || this.#createSlug(name);
     const description = style.description || this.description;
     const tags = style.tags || this.tags;
     const author = style.author || this.author;
@@ -49,6 +58,7 @@ class Style {
     style = await prisma.style.create({
       data: {
         name,
+        slug,
         description,
         ...(tags.length > 0
           ? {
@@ -85,6 +95,7 @@ class Style {
   update(style = {}) {
     const id = style.id || this.id;
     const name = style.name || this.name;
+    const slug = style.slug || this.slug || this.#createSlug(name);
     const description = style.description || this.description;
     const tags = style.tags || this.tags;
     const collection = style.collection || this.collection;
@@ -93,6 +104,7 @@ class Style {
       where: { id },
       data: {
         ...(name ? { name } : {}),
+        ...(slug ? { slug } : {}),
         ...(description ? { description } : {}),
         ...(tags.length > 0
           ? {
@@ -114,11 +126,20 @@ class Style {
   find(style = {}) {
     const id = style.id || this.id;
     const name = style.name || this.name;
+    const slug = style.slug || this.slug;
+    const collection = style.collection || this.collection;
 
-    const filters = [id && { id }, name && { name }].filter(Boolean);
+    const filters = [
+      id && { id },
+      name && { name },
+      slug && { slug },
+      collection && { collection: { id: collection } },
+    ].filter(Boolean);
 
     if (filters.length === 0) {
-      throw new Error("At least one of id, or name, must be provided");
+      throw new Error(
+        "At least one of id, name, slug or collection, must be provided"
+      );
     }
 
     return prisma.style.findFirst({
@@ -129,10 +150,37 @@ class Style {
     });
   }
 
-  findMany(where = {}) {
+  findMany(
+    where = {},
+    limit = 10,
+    offset = 0,
+    orderBy = { items: { _count: "desc" } }
+  ) {
     return prisma.style.findMany({
       where,
-      select: this.selectedFields,
+      select: { ...this.selectedFields, _count: { select: { items: true } } },
+      take: limit,
+      skip: offset,
+      orderBy,
+    });
+  }
+
+  getTags(
+    where = {},
+    limit = 4,
+    offset = 0,
+    orderBy = { styles: { _count: "desc" } }
+  ) {
+    return prisma.tag.findMany({
+      where,
+      select: {
+        name: true,
+        styles: { select: { name: true }, distinct: ["name"], take: limit },
+      },
+      distinct: ["name"],
+      take: limit,
+      skip: offset,
+      orderBy,
     });
   }
 
@@ -163,7 +211,7 @@ class Style {
     });
   }
 
-  isFavorited(user) {
+  isFavorite(user) {
     return prisma.favoriteStyle.findFirst({
       where: {
         userId: user,
@@ -254,10 +302,15 @@ class Style {
   delete() {
     return prisma.style.delete({
       where: {
-        id: this.id,
+        OR: [{ id: this.id }, { slug: this.slug }],
       },
     });
   }
+
+  deleteMany() {
+    return prisma.style.deleteMany();
+  }
 }
 
-module.exports = Style;
+const style = new Style();
+module.exports = { style, Style };

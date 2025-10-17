@@ -55,10 +55,10 @@ class Profile {
     });
   }
 
-  find(profile = {}) {
+  async find(profile = {}) {
     const id = profile.id || this.id;
     const user = profile.user || this.user;
-    profile = prisma.profile.findFirst({
+    profile = await prisma.profile.findFirst({
       where: { OR: [{ id }, { user: { id: user } }] },
       select: this.selectedFields,
     });
@@ -71,6 +71,13 @@ class Profile {
     profile = await this.find();
     return profile ? prisma.profile.delete({ where: { id: this.id } }) : null;
   }
+
+  deleteMany(where = {}) {
+    return prisma.deleteMany({
+      where,
+    });
+  }
 }
 
-module.exports = Profile;
+const profile = new Profile();
+module.exports = { profile, Profile };

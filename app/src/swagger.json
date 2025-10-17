@@ -5,7 +5,7 @@
     "title": "Wardrobe Fitter API",
     "description": "API documentation for the Wardrobe Fitter application"
   },
-  "host": "localhost:3000",
+  "host": "localhost:4000",
   "basePath": "/api",
   "schemes": ["http", "https"],
   "consumes": ["application/json"],

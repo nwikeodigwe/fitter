@@ -1,10 +1,16 @@
 const prisma = require("../functions/prisma");
+const { logger } = require("./Logger");
+const slugify = require("slugify");
 
 class Item {
   constructor(item = {}) {
     this.item = {};
     this.id = item.id || null;
     this.name = item.name || null;
+    this.slug = item.slug || null;
+    this.category = item.category || null;
+    this.depthMap = item.category || null;
+    this.releaseYear = item.releaseYear || null;
     this.description = item.description || null;
     this.images = item.images || null;
     this.tags = item.tags || null;
@@ -13,7 +19,9 @@ class Item {
     this.selectedFields = {
       id: true,
       name: true,
+      slug: true,
       description: true,
+      depthMap: true,
       images: { select: { id: true, url: true } },
       brand: { select: { id: true, name: true } },
       tags: true,
@@ -21,11 +29,19 @@ class Item {
     };
   }
 
+  #createSlug(name) {
+    return name ? slugify(name, { lower: true }) : null;
+  }
+
   async save(item = {}) {
     this.name = item.name || this.name;
     this.description = item.description || this.description;
+    this.slug = item.slug || this.slug || this.#createSlug(this.name);
     this.tags = item.tags || this.tags;
+    this.category = item.category || this.category;
+    this.depthMap = item.depthMap || this.depthMap || null;
     this.id = item.id || this.id;
+    this.realeaseYear = item.releaseYear || this.releaseYear;
     this.brand = item.brand || this.brand;
     this.images = item.images || this.images;
     this.creator = item.creator || this.creator;
@@ -38,6 +54,10 @@ class Item {
   async create(item = {}) {
     const name = item.name || this.name;
     const description = item.description || this.description;
+    const slug = item.slug || this.slug || this.#createSlug(name);
+    const releaseYear = item.releaseYear || this.releaseYear;
+    const category = item.category || this.category;
+    const depthMap = item.depthMap || this.depthMap;
     const tags = item.tags || this.tags;
     const brand = item.brand || this.brand;
     const images = item.images || this.images;
@@ -46,6 +66,10 @@ class Item {
     item = await prisma.item.create({
       data: {
         name,
+        slug,
+        releaseYear,
+        category,
+        depthMap,
         description,
         ...(tags &&
           tags.length > 0 && {
@@ -61,17 +85,20 @@ class Item {
               creator: { connect: { id: creator } },
             }
           : {}),
-        ...(images && {
-          images: {
-            connect: images.map((image) => ({
-              id: image,
-            })),
-          },
-        }),
+        ...(images && images.length > 0
+          ? {
+              images: {
+                connectOrCreate: images.map((imageUrl) => ({
+                  where: { url: imageUrl },
+                  create: { url: imageUrl },
+                })),
+              },
+            }
+          : {}),
         brand: {
           connectOrCreate: {
             where: { name: brand },
-            create: { name: brand },
+            create: { name: brand, slug: this.#createSlug(brand) },
           },
         },
       },
@@ -85,6 +112,10 @@ class Item {
   update(item = {}) {
     const id = item.id || this.id;
     const name = item.name || this.name;
+    const slug = item.slug || this.slug || this.#createSlug(name);
+    const category = item.category || this.category;
+    const depthMap = item.depthMap || this.depthMap;
+    const realeaseYear = item.releaseYear || this.releaseYear;
     const description = item.description || this.description;
     const tags = item.tags || this.tags;
     const brand = item.brand || this.brand;
@@ -95,6 +126,10 @@ class Item {
       where: { id },
       data: {
         ...(name ? { name } : {}),
+        ...(slug ? { slug } : {}),
+        ...(category ? { category } : {}),
+        ...(depthMap ? { depthMap } : {}),
+        ...(realeaseYear ? { realeaseYear } : {}),
         ...(description ? { description } : {}),
         ...(tags && tags.length > 0
           ? {
@@ -114,8 +149,9 @@ class Item {
         ...(images
           ? {
               images: {
-                connect: images.map((image) => ({
-                  id: image,
+                connectOrCreate: images.map((image) => ({
+                  where: { url: image },
+                  create: { url: image },
                 })),
               },
             }
@@ -125,7 +161,7 @@ class Item {
               brand: {
                 connectOrCreate: {
                   where: { name: brand },
-                  create: { name: brand },
+                  create: { name: brand, slug: this.#createSlug(brand) },
                 },
               },
             }
@@ -136,10 +172,14 @@ class Item {
   }
 
   find(item = {}) {
+    logger.info("Finding item...");
     const id = item.id || this.id;
     const name = item.name || this.name;
+    const slug = item.slug || this.slug;
 
-    const filters = [id && { id }, name && { name }].filter(Boolean);
+    const filters = [id && { id }, name && { name }, slug && { slug }].filter(
+      Boolean
+    );
 
     if (filters.length === 0) {
       throw new Error("At least one of id, name, or email must be provided");
@@ -161,10 +201,44 @@ class Item {
     });
   }
 
-  findMany(where = {}) {
+  async findBySlug(slug = this.slug) {
+    try {
+      await prisma.item.findFirst({
+        where: {
+          slug,
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+    }
+  }
+
+  findMany(filter = {}, limit = 10, offset = 0, order) {
     return prisma.item.findMany({
-      where,
+      where: filter,
       select: this.selectedFields,
+      take: limit,
+      skip: offset,
+      orderBy: order,
+    });
+  }
+
+  getTags(
+    where = {},
+    limit = 4,
+    offset = 0,
+    orderBy = { items: { _count: "desc" } }
+  ) {
+    return prisma.tag.findMany({
+      where,
+      select: {
+        name: true,
+        items: { select: { name: true }, distinct: ["name"], take: limit },
+      },
+      distinct: ["name"],
+      take: limit,
+      skip: offset,
+      orderBy,
     });
   }
 
@@ -195,7 +269,7 @@ class Item {
     });
   }
 
-  isFavorited(user) {
+  isFavorite(user) {
     return prisma.favoriteItem.findFirst({
       where: {
         userId: user,
@@ -303,4 +377,5 @@ class Item {
   }
 }
 
-module.exports = Item;
+const item = new Item();
+module.exports = { item, Item };

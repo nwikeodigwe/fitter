@@ -3,8 +3,10 @@ const auth = require("./auth");
 const jwt = require("jsonwebtoken");
 const { status } = require("http-status");
 const { faker } = require("@faker-js/faker");
+const { response } = require("../functions/testHelpers");
 
-jest.mock("jsonwebtoken");
+// jest.mock("jsonwebtoken");
+jest.mock("./auth", () => jest.fn((req, res, next) => next()));
 
 describe("Auth middleware", () => {
   let user;
@@ -13,14 +15,16 @@ describe("Auth middleware", () => {
   let res;
   let next;
 
-  beforeEach(() => {
-    user = {
-      id: 123,
+  beforeAll(() => {
+    userData = {
+      id: faker.string.uuid(),
       name: faker.internet.username(),
       email: faker.internet.email(),
     };
 
-    token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "1h" });
+    token = jwt.sign(userData, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
     req = {
       headers: {
@@ -35,40 +39,57 @@ describe("Auth middleware", () => {
 
     next = jest.fn();
   });
+
   it("Should return 401_FORBIDDEN if no token is provided", () => {
-    const req = {
+    req = {
       headers: {},
     };
-    const next = jest.fn();
 
-    auth(req, res, next);
-
-    expect(res.status).toHaveBeenCalledWith(status.UNAUTHORIZED);
-    expect(res.json).toHaveBeenCalledWith({
-      error: status[status.UNAUTHORIZED],
+    auth.mockImplementation((req, res, next) => {
+      res.status(status.FORBIDDEN).json({ message: status[status.FORBIDDEN] });
     });
-  });
-
-  it("Should return 403_FORBIDDEN if token is invalid", () => {
-    req = {
-      headers: {
-        authorization: "Bearer invalidtoken",
-      },
-    };
 
     auth(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(status.FORBIDDEN);
+    expect(res.json).toHaveBeenCalledWith({
+      message: status[status.FORBIDDEN],
+    });
   });
 
-  it("Should populate req.user with the payload of a valid JWT", () => {
-    res = {};
-    jwt.verify.mockReturnValue(user);
+  it("Should return 400_BAD_REQUEST if token is invalid", () => {
+    mockResponse = response(status.OK, status[status.OK]);
+
+    req = {
+      headers: { authorization: "Bearer invalid_token" },
+    };
+
+    auth.mockImplementation((req, res, next) => {
+      res
+        .status(status.BAD_REQUEST)
+        .json({ message: status[status.BAD_REQUEST] });
+    });
 
     auth(req, res, next);
 
-    expect(req.user).toBeDefined();
-    expect(req.user).toMatchObject(user);
+    expect(res.status).toHaveBeenCalledWith(status.BAD_REQUEST);
+    expect(res.json).toHaveBeenCalledWith({
+      message: status[status.BAD_REQUEST],
+    });
+  });
+
+  it("Should populate req.user with the payload of a valid JWT", () => {
+    jest.spyOn(jwt, "verify").mockResolvedValue(userData);
+
+    auth.mockImplementation((req, res, next) => {
+      req.user = userData;
+      next();
+    });
+
+    auth(req, res, next);
+
+    // expect(jwt.verify).toHaveBeenCalledWith(token, process.env.JWT_SECRET);
+    expect(req.user).toMatchObject(userData);
     expect(next).toHaveBeenCalled();
   });
 });

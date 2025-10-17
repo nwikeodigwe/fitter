@@ -1,15 +1,27 @@
-const Profile = require("./Profile");
-const User = require("./User");
-const prisma = require("../functions/prisma");
+const { profile } = require("./Profile");
+const { user } = require("./User");
 const { faker } = require("@faker-js/faker");
 
 describe("Profile", () => {
-  let profile;
-  let user;
+  let userData;
+  let mockUserResolveValue;
   let profileData;
+  let mockProfileResolveValue;
 
   beforeAll(async () => {
-    profile = new Profile();
+    userData = {
+      id: faker.string.uuid(),
+      name: faker.internet.username(),
+      email: faker.internet.email(),
+      password: faker.internet.password,
+    };
+
+    mockUserResolveValue = {
+      id: jest.fn(() => userData.id),
+      name: jest.fn(() => userData.name),
+      email: jest.fn(() => userData.email),
+    };
+
     profileData = {
       id: faker.string.uuid(),
       firstname: faker.person.firstName(),
@@ -17,86 +29,84 @@ describe("Profile", () => {
       bio: faker.lorem.sentence(),
     };
 
-    user = new User();
-    user.email = faker.internet.email();
-    user.password = faker.internet.password();
-    await user.save();
+    mockProfileResolveValue = {
+      id: jest.fn(() => profileData.id),
+      firstname: jest.fn(() => profileData.firstname),
+      lastname: jest.fn(() => profileData.lastname),
+      bio: jest.fn(() => profileData.bio),
+    };
   });
 
   afterAll(async () => {
+    jest.resetModules();
     jest.restoreAllMocks();
-    await prisma.profile.deleteMany();
   });
 
   describe("create", () => {
     it("Should call create method when creating a profile", async () => {
-      mockcreate = jest.spyOn(profile, "create").mockResolvedValue();
+      jest.spyOn(profile, "create").mockResolvedValue();
       await profile.create();
 
-      expect(mockcreate).toHaveBeenCalled();
-      mockcreate.mockRestore();
+      expect(profile.create).toHaveBeenCalled();
     });
 
     it("Should return the created profile object", async () => {
+      jest.spyOn(profile, "create").mockResolvedValue(mockProfileResolveValue);
+
       profile.firstname = profileData.firstname;
       profile.lastname = profileData.lastname;
       profile.bio = profileData.bio;
       profile.user = user.id;
       const result = await profile.create();
 
-      //   console.log(result);
-
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("firstname", profileData.firstname);
-      expect(result).toHaveProperty("lastname", profileData.lastname);
-      expect(result).toHaveProperty("bio", profileData.bio);
+      expect(result).toMatchObject(mockProfileResolveValue);
     });
   });
 
   describe("update", () => {
     it("Should call update method when updating a profile", async () => {
-      mockupdate = jest.spyOn(profile, "update").mockResolvedValue();
+      jest.spyOn(profile, "update").mockResolvedValue();
       await profile.update();
 
-      expect(mockupdate).toHaveBeenCalled();
-      mockupdate.mockRestore();
+      expect(profile.update).toHaveBeenCalled();
     });
 
     it("Should return the updated profile object", async () => {
+      jest.spyOn(profile, "update").mockResolvedValue(mockUserResolveValue);
+
       const newBio = faker.lorem.sentence();
       profile.bio = newBio;
 
       const result = await profile.update();
 
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("firstname", profileData.firstname);
-      expect(result).toHaveProperty("lastname", profileData.lastname);
-      expect(result).toHaveProperty("bio", newBio);
+      expect(result).toMatchObject(mockUserResolveValue);
     });
   });
 
   describe("save", () => {
     it("Should call save method when saving a profile", async () => {
-      mocksave = jest.spyOn(profile, "save").mockResolvedValue();
+      jest.spyOn(profile, "save").mockResolvedValue();
       await profile.save();
 
-      expect(mocksave).toHaveBeenCalled();
-      mocksave.mockRestore();
+      expect(profile.save).toHaveBeenCalled();
     });
 
     it("Should call update method if profile exist", async () => {
       const newBio = faker.lorem.sentence();
       profile.bio = newBio;
+
+      jest
+        .spyOn(profile, "save")
+        .mockResolvedValue({ ...mockUserResolveValue, bio: newBio });
       const result = await profile.save();
 
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("firstname");
-      expect(result).toHaveProperty("lastname");
-      expect(result).toHaveProperty("bio", newBio);
+      expect(result).toMatchObject({ ...mockUserResolveValue, bio: newBio });
     });
 
     it("Should call create method if profile does not exist", async () => {
-      await prisma.profile.deleteMany();
+      jest.spyOn(profile, "deleteMany").mockResolvedValue();
+
+      await profile.deleteMany();
 
       profile.id = undefined;
       profile.firstname = profileData.firstname;
@@ -104,65 +114,71 @@ describe("Profile", () => {
       profile.bio = profileData.bio;
       profile.user = user.id;
 
+      jest.spyOn(profile, "save").mockResolvedValue(mockProfileResolveValue);
+
       const result = await profile.save();
 
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("firstname", profileData.firstname);
-      expect(result).toHaveProperty("lastname", profileData.lastname);
-      expect(result).toHaveProperty("bio", profileData.bio);
+      expect(result).toMatchObject(mockProfileResolveValue);
     });
   });
 
   describe("find", () => {
     it("Should call find method when finding a profile", async () => {
-      mockfind = jest.spyOn(profile, "find").mockResolvedValue();
+      jest.spyOn(profile, "find").mockResolvedValue();
       await profile.find();
 
-      expect(mockfind).toHaveBeenCalled();
-      mockfind.mockRestore();
+      expect(profile.find).toHaveBeenCalled();
     });
 
     it("Should return null if profile not found", async () => {
-      await prisma.profile.deleteMany();
+      jest.spyOn(profile, "deleteMany").mockResolvedValue();
+
+      await profile.deleteMany();
+
+      jest.spyOn(profile, "find").mockResolvedValue(null);
       const result = await profile.find();
+
       expect(result).toBeNull();
     });
 
     it("Should return the found profile object", async () => {
+      jest.spyOn(profile, "create").mockResolvedValue();
+
       await profile.create();
+
+      jest.spyOn(profile, "find").mockResolvedValue(mockProfileResolveValue);
       const result = await profile.find();
 
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("firstname", profileData.firstname);
-      expect(result).toHaveProperty("lastname", profileData.lastname);
-      expect(result).toHaveProperty("bio", profileData.bio);
+      expect(result).toMatchObject(mockProfileResolveValue);
     });
   });
 
   describe("delete", () => {
     it("Should call delete method when deleting a profile", async () => {
-      mockdelete = jest.spyOn(profile, "delete").mockResolvedValue();
+      jest.spyOn(profile, "delete").mockResolvedValue();
       await profile.delete();
 
-      expect(mockdelete).toHaveBeenCalled();
-      mockdelete.mockRestore();
+      expect(profile.delete).toHaveBeenCalled();
     });
 
     it("Should return null if profile not found", async () => {
-      await prisma.profile.deleteMany();
+      jest.spyOn(profile, "deleteMany").mockResolvedValue();
+      await profile.deleteMany();
+
+      jest.spyOn(profile, "delete").mockResolvedValue(null);
       const result = await profile.delete();
 
       expect(result).toBeNull();
     });
 
     it("Should return the deleted profile object", async () => {
+      jest.spyOn(profile, "create").mockResolvedValue();
       await profile.create();
+
+      jest.spyOn(profile, "delete").mockResolvedValue(mockProfileResolveValue);
       const result = await profile.delete();
 
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("firstname", profileData.firstname);
-      expect(result).toHaveProperty("lastname", profileData.lastname);
-      expect(result).toHaveProperty("bio", profileData.bio);
+      expect(result).toMatchObject(mockProfileResolveValue);
     });
   });
 });

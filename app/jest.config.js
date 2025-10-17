@@ -10,4 +10,5 @@ module.exports = {
     "^.+\\.(js|jsx)$": "babel-jest", // Add babel-jest for JavaScript files
   },
   testMatch: ["**/__tests__/**/*.[jt]s?(x)", "**/?(*.)+(spec|test).[tj]s?(x)"],
+  testPathIgnorePatterns: ["/node_modules/", "/tests/playwright/"],
 };

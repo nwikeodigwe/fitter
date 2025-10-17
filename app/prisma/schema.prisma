@@ -71,6 +71,20 @@ model Reset {
   @@index([userId], map: "Reset_userId_fkey")
 }
 
+model Newsletter {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Search {
+  id        String   @id @default(cuid())
+  query     String
+  createdAt DateTime @default(now())
+}
+
 model Tag {
   id          String       @id @default(cuid())
   name        String       @unique
@@ -86,6 +100,8 @@ model Tag {
 model Brand {
   id                String              @id @default(cuid())
   name              String              @unique
+  slug              String              @unique
+  published         Boolean             @default(false)
   description       String?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
@@ -117,6 +133,8 @@ model BrandSubscription {
 model Collection {
   id             String               @id @default(cuid())
   name           String
+  slug           String               @unique
+  published      Boolean              @default(false)
   description    String?
   authorId       String?
   createdAt      DateTime             @default(now())
@@ -133,6 +151,7 @@ model Collection {
 model Style {
   id           String          @id @default(cuid())
   name         String
+  slug         String          @unique
   description  String
   published    Boolean         @default(false)
   collectionId String?
@@ -153,7 +172,13 @@ model Style {
 model Item {
   id           String         @id @default(cuid())
   name         String
+  slug         String         @unique
   description  String?
+  category     String?
+  color        String?
+  colorScheme  String?
+  depthMap     String?
+  releaseYear  Int?
   published    Boolean        @default(false)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -184,7 +209,7 @@ model Logo {
 
 model Image {
   id        String   @id @default(cuid())
-  url       String
+  url       String   @unique
   createdAt DateTime @default(now())
   Logo      Logo[]
   item      Item[]   @relation("ItemImage")
@@ -200,7 +225,7 @@ model Comment {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   replies     Comment[]     @relation("CommentReplies")
   CommentVote CommentVote[]
   tag         Tag[]         @relation("CommentTags")

@@ -3,8 +3,8 @@ const bcrypt = require("bcryptjs");
 const rug = require("random-username-generator");
 const logger = require("../utils/Logger");
 const prisma = require("../functions/prisma");
-const mail = require("./Mail");
-const transform = require("../functions/transform");
+const { mail } = require("./Mail");
+const template = require("../const/mail.json");
 
 class User {
   constructor(user = {}) {
@@ -109,23 +109,17 @@ class User {
     });
   }
 
-  async isSubscribedTo(id) {
-    try {
-      let subscription = await prisma.userSubscription.findFirst({
-        where: {
-          userId: id,
-          subscriberId: this.id,
-        },
-      });
-
-      return !!subscription;
-    } catch (err) {
-      logger.error(err.message);
-      return false;
-    }
+  isSubscribed(user) {
+    return prisma.userSubscription.findFirst({
+      where: {
+        userId: user,
+        subscriberId: this.id,
+      },
+      select: { id: true },
+    });
   }
 
-  async subscribeTo(id) {
+  async subscribe(id) {
     try {
       return await prisma.userSubscription.create({
         data: {
@@ -150,23 +144,18 @@ class User {
     }
   }
 
-  async unsubscribeFrom(id) {
-    try {
-      return await prisma.userSubscription.delete({
-        where: {
-          userId_subscriberId: {
-            userId: id,
-            subscriberId: this.id,
-          },
+  unsubscribe(id) {
+    return prisma.userSubscription.delete({
+      where: {
+        userId_subscriberId: {
+          userId: id,
+          subscriberId: this.id,
         },
-        select: {
-          id: true,
-        },
-      });
-    } catch (err) {
-      logger.error(err.message);
-      return null;
-    }
+      },
+      select: {
+        id: true,
+      },
+    });
   }
 
   async #getPassword() {
@@ -215,7 +204,12 @@ class User {
           email: user.email,
         },
         secret,
-        { expiresIn: "1h" }
+        {
+          expiresIn: "1h",
+          // issuer: process.env.AUTH0_DOMAIN,
+          // audience: process.env.AUTH0_AUDIENCE,
+          // algorithm: "HS256",
+        }
       );
 
     return null;
@@ -250,27 +244,21 @@ class User {
     return { token, refresh };
   }
 
-  mail(template, user = {}, attr = {}) {
+  mail(type, user = {}, attr = {}) {
     const name = user.name || this.name;
     const email = user.email || this.email;
-
-    const type = {
-      welcome: {
-        template: mail.WELCOME,
-        subject: mail.WELCOME_SUBJECT,
-        from: mail.WELCOME_FROM,
-      },
-    };
+    const from = template[type].from;
+    const subject = template[type].subject;
 
     mail.content({
       name,
       email,
-      subject: type[template].subject,
-      from: type[template].from,
+      subject,
+      from,
       ...attr,
     });
 
-    return mail.send(type[template].template);
+    return mail.send(template[type].template);
   }
 
   async createResetToken(user = {}) {
@@ -347,9 +335,10 @@ class User {
     return null;
   }
 
-  deleteMany() {
-    return prisma.user.deleteMany();
+  deleteMany(where = {}) {
+    return prisma.user.deleteMany({ where });
   }
 }
 
-module.exports = User;
+const user = new User();
+module.exports = { user, User };

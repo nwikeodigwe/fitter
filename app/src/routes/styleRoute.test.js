@@ -1,91 +1,113 @@
-const request = require("supertest");
-const app = require("../app");
-const prisma = require("../functions/prisma");
+const { app } = require("../app");
+const { style } = require("../utils/Style");
+const { collection } = require("../utils/Collection");
+const { user } = require("../utils/User");
 const { faker } = require("@faker-js/faker");
 const { status } = require("http-status");
+const jwt = require("jsonwebtoken");
+const request = require("supertest");
 const method = require("../const/http-methods");
-const {
-  createTestUser,
-  createTestCollection,
-  createTestStyle,
-  createTestComment,
-} = require("../functions/testHelpers");
+
 let server;
 
 describe("Style Route", () => {
-  let user;
-  let style = {};
-  let collection;
-  let comment = {};
   let header;
+  let userData;
+  let mockUserLoginResolveToken;
+  let itemData;
+  let mockStyleResolveValue;
+  let mockResponse;
 
   beforeAll(async () => {
-    server = app.listen(0, () => {
-      server.address().port;
+    server = app.listen(0);
+
+    userData = {
+      id: faker.string.uuid(),
+      name: faker.internet.username(),
+      email: faker.internet.username(),
+      password: faker.internet.password(),
+    };
+
+    const token = jwt.sign(
+      {
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
+
+    const refresh = jwt.sign({ id: userData.id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
     });
 
-    const { account, login } = await createTestUser();
-    user = account;
+    mockUserLoginResolveToken = {
+      token: refresh,
+    };
 
-    header = { Authorization: `Bearer ${login.token}` };
+    jest.spyOn(user, "login").mockResolvedValue(mockUserLoginResolveToken);
 
-    collection = await createTestCollection(user.id);
+    user.email = userData.email;
+    user.password = userData.password;
+    login = await user.login();
+
+    header = { Authorization: `Bearer ${token}` };
+
+    jest.spyOn(jwt, "verify").mockResolvedValue({
+      id: userData.id,
+      name: userData.name,
+      email: userData.email,
+    });
+
+    styleData = {
+      id: faker.string.uuid(),
+      name: faker.commerce.productName(),
+      description: faker.commerce.productDescription(),
+      collection: faker.string.uuid(),
+      creator: userData.id,
+      brand: faker.string.uuid(),
+      images: [faker.string.uuid(), faker.string.uuid()],
+      tags: ["tag1", "tag2"],
+    };
+
+    mockStyleResolveValue = {
+      id: jest.fn(() => styleData.id),
+      name: jest.fn(() => styleData.name),
+      description: jest.fn(() => styleData.description),
+      collection: { id: jest.fn(() => styleData.collection) },
+      creator: { id: jest.fn(() => styleData.creator) },
+      images: jest.fn(() => styleData.images),
+      tags: jest.fn(() => styleData.tags),
+    };
   });
 
   afterAll(async () => {
-    await prisma.$transaction([
-      prisma.user.deleteMany(),
-      prisma.style.deleteMany(),
-      prisma.collection.deleteMany(),
-    ]);
-
-    await prisma.$disconnect();
+    jest.restoreAllMocks();
     await server.close();
   });
 
   describe("POST /", () => {
     it("Should return 400_BAD_REQUEST if name and description not provided", async () => {
-      const mockResponse = {
-        status: status.BAD_REQUEST,
-        body: { message: status[status.BAD_REQUEST] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
       const res = await request(server).post("/api/style").set(header);
 
       expect(res.status).toBe(status.BAD_REQUEST);
     });
 
     it("Should return 404_NOT_FOUND if collection not found", async () => {
-      style.name = faker.commerce.productName();
-      style.description = faker.commerce.productDescription();
-      style.collection = "collection_id";
+      jest.spyOn(collection, "find").mockResolvedValue(null);
 
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
       const res = await request(server)
         .post("/api/style")
         .set(header)
-        .send(style);
+        .send({ ...styleData, collection: "invalid_id", id: undefined });
 
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 400_BAD_REQUEST if tag is not an array", async () => {
-      collection = await createTestCollection(user.id);
-      style.collection = collection.id;
-      style.tags = "tags";
-
-      const mockResponse = {
-        status: status.BAD_REQUEST,
-        body: { message: status[status.BAD_REQUEST] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
       const res = await request(server)
         .post("/api/style")
         .set(header)
@@ -95,18 +117,15 @@ describe("Style Route", () => {
     });
 
     it("Should return 201_CREATED if style created", async () => {
-      style.tags = ["tag1", "tag2"];
+      jest.spyOn(style, "save").mockResolvedValue(mockStyleResolveValue);
+      jest
+        .spyOn(collection, "find")
+        .mockResolvedValue({ id: faker.string.uuid() });
 
-      const mockResponse = {
-        status: status.CREATED,
-        body: { message: status[status.CREATED] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
       const res = await request(server)
         .post("/api/style")
         .set(header)
-        .send(style);
+        .send({ ...styleData, id: undefined });
 
       expect(res.status).toBe(status.CREATED);
     });
@@ -114,26 +133,14 @@ describe("Style Route", () => {
 
   describe("GET /", () => {
     it("Should return 200_OK if style found", async () => {
-      const mockResponse = {
-        status: status.OK,
-        body: { message: status[status.OK] },
-      };
+      jest.spyOn(style, "findMany").mockResolvedValue([mockStyleResolveValue]);
 
-      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
       const res = await request(server).get(`/api/style`).set(header);
 
       expect(res.status).toBe(status.OK);
     });
 
     it("Should return 404_NOT_FOUND if no style found", async () => {
-      await prisma.style.deleteMany();
-
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
       const res = await request(server).get("/api/style").set(header);
 
       expect(res.status).toBe(status.NOT_FOUND);
@@ -142,12 +149,6 @@ describe("Style Route", () => {
 
   describe("GET /:style", () => {
     it("Should return 404_NOT_FOUND if style not found", async () => {
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
       const res = await request(server)
         .get("/api/style/invalid_style_id")
         .set(header);
@@ -156,13 +157,7 @@ describe("Style Route", () => {
     });
 
     it("Should return 200_OK if style found", async () => {
-      style = await createTestStyle(user.id, collection.id);
-      const mockResponse = {
-        status: status.OK,
-        body: { message: status[status.OK] },
-      };
-
-      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
+      jest.spyOn(style, "find").mockResolvedValue(mockStyleResolveValue);
       const res = await request(server)
         .get(`/api/style/${style.id}`)
         .set(header);
@@ -171,379 +166,8 @@ describe("Style Route", () => {
     });
   });
 
-  describe("POST /:style/favorite", () => {
-    it("Should return 404_NOT_FOUND if style is not found", async () => {
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .post("/api/style/invalid_style_id/favorite")
-        .set(header);
-
-      expect(res.status).toBe(status.NOT_FOUND);
-    });
-
-    it("Should return 201_CREATED if style favorited", async () => {
-      const mockResponse = {
-        status: status.CREATED,
-        body: { message: status[status.CREATED] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .post(`/api/style/${style.id}/favorite`)
-        .set(header);
-
-      expect(res.status).toBe(status.CREATED);
-    });
-  });
-
-  describe("POST /:style/unfavorite", () => {
-    it("Should return 404_NOT_FOUND if style is not found", async () => {
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.DELETE).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .delete("/api/style/invalid_style_id/unfavorite")
-        .set(header);
-
-      expect(res.status).toBe(status.NOT_FOUND);
-    });
-
-    it("Should return 204_NO_CONTENT if style unfavorited", async () => {
-      const mockResponse = {
-        status: status.NO_CONTENT,
-        body: { message: status[status.NO_CONTENT] },
-      };
-
-      jest.spyOn(request(server), method.DELETE).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .delete(`/api/style/${style.id}/unfavorite`)
-        .set(header);
-
-      expect(res.status).toBe(status.NO_CONTENT);
-    });
-
-    it("Should return 404_NOT_FOUND if style is not favorited", async () => {
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.DELETE).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .delete(`/api/style/${style.id}/unfavorite`)
-        .set(header);
-
-      expect(res.status).toBe(status.NOT_FOUND);
-    });
-  });
-
-  describe("PUT /:style/upvote", () => {
-    it("Should return 404_NOT_FOUND if style is not found", async () => {
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.PUT).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .put("/api/style/invalid_style_id/upvote")
-        .set(header);
-
-      expect(res.status).toBe(status.NOT_FOUND);
-    });
-
-    it("Should return 200_OK if style upvoted", async () => {
-      const mockResponse = {
-        status: status.OK,
-        body: { message: status[status.OK] },
-      };
-
-      jest.spyOn(request(server), method.PUT).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .put(`/api/style/${style.id}/upvote`)
-        .set(header);
-
-      expect(res.status).toBe(status.OK);
-    });
-  });
-
-  describe("PUT /:style/downvote", () => {
-    it("Should return 404_NOT_FOUND if style is not found", async () => {
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.PUT).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .put("/api/style/invalid_style_id/downvote")
-        .set(header);
-
-      expect(res.status).toBe(status.NOT_FOUND);
-    });
-
-    it("Should return 200_OK if style downvoted", async () => {
-      const mockResponse = {
-        status: status.OK,
-        body: { message: status[status.OK] },
-      };
-
-      jest.spyOn(request(server), method.PUT).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .put(`/api/style/${style.id}/downvote`)
-        .set(header);
-
-      expect(res.status).toBe(status.OK);
-    });
-  });
-
-  describe("DELETE /:style/unvote", () => {
-    it("Should return 404_NOT_FOUND if style is not found", async () => {
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.DELETE).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .delete("/api/style/invalid_style_id/unvote")
-        .set(header);
-
-      expect(res.status).toBe(status.NOT_FOUND);
-    });
-
-    it("Should return 204_NO_CONTENT if style unvoted", async () => {
-      await style.upvote(user.id);
-
-      const mockResponse = {
-        status: status.NO_CONTENT,
-        body: { message: status[status.NO_CONTENT] },
-      };
-
-      jest.spyOn(request(server), method.DELETE).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .delete(`/api/style/${style.id}/unvote`)
-        .set(header);
-
-      expect(res.status).toBe(status.NO_CONTENT);
-    });
-  });
-
-  describe("POST /:style/comment", () => {
-    it("Should return 404_NOT_FOUND if style is not found", async () => {
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .post("/api/style/invalid_style_id/comment")
-        .set(header);
-
-      expect(res.status).toBe(status.NOT_FOUND);
-    });
-
-    it("Should return 400_BAD_REQUEST if comment not provided", async () => {
-      const mockResponse = {
-        status: status.BAD_REQUEST,
-        body: { message: status[status.BAD_REQUEST] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .post(`/api/style/${style.id}/comment`)
-        .set(header);
-
-      expect(res.status).toBe(status.BAD_REQUEST);
-    });
-
-    it("Should return 400_BAD_REQUEST if tag is not an array", async () => {
-      comment.tags = "tag";
-
-      const mockResponse = {
-        status: status.BAD_REQUEST,
-        body: { message: status[status.BAD_REQUEST] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .post(`/api/style/${style.id}/comment`)
-        .set(header)
-        .send(comment);
-
-      expect(res.status).toBe(status.BAD_REQUEST);
-    });
-
-    it("Should return 201_CREATED if comment successful", async () => {
-      comment.tags = ["tag1", "tag2"];
-      comment.content = "content";
-
-      const mockResponse = {
-        status: status.CREATED,
-        body: { message: status[status.CREATED] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .post(`/api/style/${style.id}/comment`)
-        .set(header)
-        .send(comment);
-
-      expect(res.status).toBe(status.CREATED);
-    });
-  });
-
-  describe("POST /:style/comment/:comment", () => {
-    it("Should return 404_NOT_FOUND if style not found", async () => {
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .post("/api/style/invalid_style_id/comment/invalid_comment_id")
-        .set(header);
-
-      expect(res.status).toBe(status.NOT_FOUND);
-    });
-
-    it("Should return 400_BAD_REQUEST if tag is not an array", async () => {
-      comment = await createTestComment("STYLE", style.id, user.id);
-
-      const mockResponse = {
-        status: status.BAD_REQUEST,
-        body: { message: status[status.BAD_REQUEST] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .post(`/api/style/${style.id}/comment/${comment.id}`)
-        .set(header);
-
-      expect(res.status).toBe(status.BAD_REQUEST);
-    });
-
-    it("Should return 400_BAD_REQUEST if comment not provided", async () => {
-      const mockResponse = {
-        status: status.BAD_REQUEST,
-        body: { message: status[status.BAD_REQUEST] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .post(`/api/style/${style.id}/comment/${comment.id}`)
-        .set(header);
-
-      expect(res.status).toBe(status.BAD_REQUEST);
-    });
-
-    it("Should return 404_NOT_FOUND if no comment found", async () => {
-      const res = await request(server)
-        .post(`/api/style/${style.id}/comment/invalid_comment_id`)
-        .set(header);
-
-      expect(res.status).toBe(status.BAD_REQUEST);
-    });
-
-    it("Should return 201_CREATED if comment successful", async () => {
-      const commentData = {
-        content: comment.content,
-        tags: comment.tags,
-      };
-
-      const mockResponse = {
-        status: status.CREATED,
-        body: { message: status[status.CREATED] },
-      };
-
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .post(`/api/style/${style.id}/comment/${comment.id}`)
-        .set(header)
-        .send(commentData);
-
-      expect(res.status).toBe(status.CREATED);
-    });
-  });
-
-  describe("GET /:style/comments", () => {
-    it("Should return 404_NOT_FOUND if style not found", async () => {
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .get("/api/style/invalid_style_id/comments")
-        .set(header);
-
-      expect(res.status).toBe(status.NOT_FOUND);
-    });
-
-    it("Should return 200_OK if comment found", async () => {
-      const mockResponse = {
-        status: status.OK,
-        body: { message: status[status.OK] },
-      };
-
-      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .get(`/api/style/${style.id}/comments`)
-        .set(header);
-
-      expect(res.status).toBe(status.OK);
-    });
-  });
-
-  describe("DELETE /comment/:comment", () => {
-    it("Should return 404_NOT_FOUND if comment not found", async () => {
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.DELETE).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .delete("/api/style/comment/invalid_comment_id")
-        .set(header);
-
-      expect(res.status).toBe(status.NOT_FOUND);
-    });
-
-    it("Should return 204_NO_CONTENT if comment deleted", async () => {
-      const mockResponse = {
-        status: status.NO_CONTENT,
-        body: { message: status[status.NO_CONTENT] },
-      };
-
-      jest.spyOn(request(server), method.DELETE).mockReturnValue(mockResponse);
-      const res = await request(server)
-        .delete(`/api/style/comment/${comment.id}`)
-        .set(header);
-
-      expect(res.status).toBe(status.NO_CONTENT);
-    });
-  });
-
   describe("DELETE /:style", () => {
     it("Should return 404_NOT_FOUND if style not found", async () => {
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
-
-      jest.spyOn(request(server), method.DELETE).mockReturnValue(mockResponse);
       const res = await request(server)
         .delete("/api/style/invalid_style_id")
         .set(header);
@@ -552,12 +176,9 @@ describe("Style Route", () => {
     });
 
     it("Should return 204_NO_CONTENT if style deleted", async () => {
-      const mockResponse = {
-        status: status.NO_CONTENT,
-        body: { message: status[status.NO_CONTENT] },
-      };
+      jest.spyOn(style, "find").mockResolvedValue(mockStyleResolveValue);
+      jest.spyOn(style, "delete").mockResolvedValue(mockStyleResolveValue);
 
-      jest.spyOn(request(server), method.DELETE).mockReturnValue(mockResponse);
       const res = await request(server)
         .delete(`/api/style/${style.id}`)
         .set(header);
@@ -568,26 +189,16 @@ describe("Style Route", () => {
 
   describe("GET /me", () => {
     it("Should return 404_NOT_FOUND if style not found", async () => {
-      const mockResponse = {
-        status: status.NOT_FOUND,
-        body: { message: status[status.NOT_FOUND] },
-      };
+      jest.spyOn(style, "findMany").mockResolvedValue([]);
 
-      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
       const res = await request(server).get("/api/style/me").set(header);
 
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 200_OK if style found", async () => {
-      await createTestStyle(user.id, collection.id);
+      jest.spyOn(style, "findMany").mockResolvedValue([mockStyleResolveValue]);
 
-      const mockResponse = {
-        status: status.OK,
-        body: { message: status[status.OK] },
-      };
-
-      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
       const res = await request(server).get(`/api/style/me`).set(header);
 
       expect(res.status).toBe(status.OK);

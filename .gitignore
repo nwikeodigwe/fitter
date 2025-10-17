@@ -10,3 +10,11 @@
 
 /mysql
 
+*node_modules
+
+/.history
+
+*.env
+
+*/venv
+

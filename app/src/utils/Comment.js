@@ -104,6 +104,75 @@ class Comment {
     });
   }
 
+  upvote(user) {
+    logger.info("Upvoting comment...");
+    return prisma.commentVote.upsert({
+      where: {
+        userId_commentId: { commentId: this.id, userId: user },
+      },
+      update: {
+        vote: true,
+      },
+      create: {
+        user: {
+          connect: {
+            id: user,
+          },
+        },
+        comment: {
+          connect: {
+            id: this.id,
+          },
+        },
+        vote: true,
+      },
+    });
+  }
+
+  isVoted(user) {
+    logger.info("Checking if comment is voted...");
+    return prisma.commentVote.findFirst({
+      where: {
+        commentId: this.id,
+        userId: user,
+      },
+    });
+  }
+
+  downvote(user) {
+    logger.info("Downvoting comment...");
+    return prisma.commentVote.upsert({
+      where: {
+        userId_commentId: { commentId: this.id, userId: user },
+      },
+      update: {
+        vote: false,
+      },
+      create: {
+        user: {
+          connect: {
+            id: user,
+          },
+        },
+        comment: {
+          connect: {
+            id: this.id,
+          },
+        },
+        vote: false,
+      },
+    });
+  }
+
+  unvote(user) {
+    logger.info("Unvoting comment...");
+    return prisma.commentVote.delete({
+      where: {
+        userId_commentId: { commentId: this.id, userId: user },
+      },
+    });
+  }
+
   async delete(user = {}) {
     this.id = user.id || this.id;
     user = await this.find();
@@ -115,6 +184,13 @@ class Comment {
       });
     return null;
   }
+
+  async deleteMany(where = {}) {
+    return prisma.comment.deleteMany({
+      where,
+    });
+  }
 }
 
-module.exports = Comment;
+const comment = new Comment();
+module.exports = { comment, Comment };

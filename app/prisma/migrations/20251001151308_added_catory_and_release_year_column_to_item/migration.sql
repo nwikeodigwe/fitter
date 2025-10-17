@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE `Item` ADD COLUMN `category` VARCHAR(191) NULL,
+    ADD COLUMN `color` VARCHAR(191) NULL,
+    ADD COLUMN `colorScheme` VARCHAR(191) NULL,
+    ADD COLUMN `releaseYear` INTEGER NULL;

@@ -1,151 +1,149 @@
 const express = require("express");
-const Style = require("../utils/Style");
-const Collection = require("../utils/Collection");
-const Comment = require("../utils/Comment");
+const { style } = require("../utils/Style");
+const { collection } = require("../utils/Collection");
+const { comment } = require("../utils/Comment");
+const auth = require("../middleware/auth");
 const { status } = require("http-status");
 const transform = require("../functions/transform");
 const router = express.Router();
 
 const ENTITY = "STYLE";
 
-router.post("/", async (req, res) => {
+router.post("/", auth, async (req, res) => {
   if (!req.body.name || !req.body.description)
     return res
       .status(status.BAD_REQUEST)
-      .json({ message: status[status.BAD_REQUEST], data: {} });
+      .json({ message: status[status.BAD_REQUEST], error: true });
 
-  let collection = new Collection();
   collection.id = req.body.collection;
-  let collectionExists = await collection.find();
+  const isCollection = await collection.find();
 
-  if (!collectionExists)
+  if (req.body.collection && !isCollection)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   if (req.body.tags && !Array.isArray(req.body.tags))
     return res
       .status(status.BAD_REQUEST)
-      .json({ message: status[status.BAD_REQUEST], data: {} });
+      .json({ message: status[status.BAD_REQUEST], error: true });
 
-  let style = new Style();
   style.tags = req.body.tags.map((tag) => transform(tag)) || undefined;
   style.name = req.body.name;
   style.description = req.body.description;
   style.author = req.user.id;
-  style = await style.save();
+  const response = await style.save();
 
   return res
     .status(status.CREATED)
-    .json({ message: status[status.CREATED], data: style });
+    .json({ message: status[status.CREATED], response });
 });
 
 router.get("/", async (req, res) => {
-  let styles = new Style();
-  styles = await styles.findMany();
+  const styles = await style.findMany();
 
   if (!styles.length)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
-  return res
-    .status(status.OK)
-    .json({ message: status[status.OK], data: styles });
+  return res.status(status.OK).json({ message: status[status.OK], styles });
 });
 
-router.get("/me", async (req, res) => {
-  let styles = new Style();
-  styles = await styles.findMany({ authorId: req.user.id });
+router.get("/tags", async (req, res) => {
+  const tags = await style.getTags();
+
+  if (!tags.length)
+    return res
+      .status(status.NOT_FOUND)
+      .json({ message: status[status.NOT_FOUND], error: true });
+
+  return res.status(status.OK).json({ message: status[status.OK], tags });
+});
+
+router.get("/me", auth, async (req, res) => {
+  const styles = await style.findMany({ authorId: req.user.id });
 
   if (!styles.length)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
-  return res
-    .status(status.OK)
-    .json({ message: status[status.OK], data: styles });
+  return res.status(status.OK).json({ message: status[status.OK], styles });
 });
 
 router.get("/:style", async (req, res) => {
-  let style = new Style();
   style.id = req.params.style;
-  style = await style.find();
+  data = await style.find();
+
+  if (!data)
+    return res
+      .status(status.NOT_FOUND)
+      .json({ message: status[status.NOT_FOUND], data: {} });
+
+  return res.status(status.OK).json({ message: status[status.OK], data });
+});
+
+router.post("/:style/comment", async (req, res) => {
+  style.id = req.params.style;
+  let isStyle = await style.find();
 
   if (!style)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
-
-  return res.status(status.OK).json({ style });
-});
-
-router.post("/:style/comment", async (req, res) => {
-  let style = new Style();
-  style.id = req.params.style;
-  let styleExists = await style.find();
-
-  if (!styleExists)
-    return res
-      .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   if (!req.body.content)
     return res
       .status(status.BAD_REQUEST)
-      .json({ message: status[status.BAD_REQUEST], data: {} });
+      .json({ message: status[status.BAD_REQUEST], error: true });
 
   if (req.body.tags && !Array.isArray(req.body.tags))
     return res
       .status(status.BAD_REQUEST)
-      .json({ message: status[status.BAD_REQUEST], data: {} });
+      .json({ message: status[status.BAD_REQUEST], error: true });
 
-  let comment = new Comment();
   comment.tags = req.body.tags.map((tag) => transform(tag)) || undefined;
   comment.content = req.body.content;
   comment.entity = ENTITY;
   comment.entityId = req.params.style;
   comment.userId = req.user.id;
-  comment = await comment.save();
+  const response = await comment.save();
 
   return res
     .status(status.CREATED)
-    .json({ message: status[status.CREATED], data: comment });
+    .json({ message: status[status.CREATED], response });
 });
 
 router.post("/:style/comment/:comment", async (req, res) => {
-  let style = new Style();
   style.id = req.params.style;
-  let styleExists = await style.find();
+  const isStyle = await style.find();
 
-  if (!styleExists)
+  if (!isStyle)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   if (!req.body.content)
     return res
       .status(status.BAD_REQUEST)
-      .json({ message: status[status.BAD_REQUEST], data: {} });
+      .json({ message: status[status.BAD_REQUEST], error: true });
 
   if (req.body.tags && !Array.isArray(req.body.tags))
     return res
       .status(status.BAD_REQUEST)
-      .json({ message: status[status.BAD_REQUEST], data: {} });
-
-  let comment = new Comment();
+      .json({ message: status[status.BAD_REQUEST], error: true });
 
   comment.tags = req.body.tags.map((tag) => transform(tag)) || undefined;
 
   comment.id = req.params.comment;
 
-  let commentExists = await comment.find();
+  const isComment = await comment.find();
 
-  if (!commentExists)
+  if (!isComment)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   comment.content = req.body.content;
   comment.tags = req.body.tags;
@@ -153,36 +151,31 @@ router.post("/:style/comment/:comment", async (req, res) => {
   comment.entityId = req.params.style;
   comment.userId = req.user.id;
   comment.parent = req.params.comment;
-  comment = await comment.create();
+  const response = await comment.create();
 
   return res
     .status(status.CREATED)
-    .json({ message: status[status.NOT_FOUND], data: comment });
+    .json({ message: status[status.NOT_FOUND], response });
 });
 
 router.get("/:style/comments", async (req, res) => {
-  let comments = new Comment();
-  comments = await comments.findMany({ entityId: req.params.style });
+  const comments = await comments.findMany({ entityId: req.params.style });
 
-  if (comments.length < 1)
+  if (!comments.length)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  return res
-    .status(status.OK)
-    .json({ message: status[status.OK], data: comments });
+  return res.status(status.OK).json({ message: status[status.OK], comments });
 });
 
 router.delete("/comment/:comment", async (req, res) => {
-  let comment = new Comment();
-  comment.id = req.params.comment;
-  let commentExists = await comment.find();
+  const isComment = await comment.find();
 
-  if (!commentExists)
+  if (!isComment)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   await comment.delete();
 
@@ -193,71 +186,66 @@ router.patch("/:style", async (req, res) => {
   if (!req.body.name && !req.body.description)
     return res
       .status(status.BAD_REQUEST)
-      .json({ message: status[status.BAD_REQUEST], data: {} });
+      .json({ message: status[status.BAD_REQUEST], error: true });
 
   if (req.body.items && !Array.isArray(req.body.items))
     return res
       .status(status.BAD_REQUEST)
-      .json({ message: status[status.BAD_REQUEST], data: {} });
+      .json({ message: status[status.BAD_REQUEST], error: true });
 
   if (req.body.tags && !Array.isArray(req.body.tags))
     return res
       .status(status.BAD_REQUEST)
-      .json({ message: status[status.BAD_REQUEST], data: {} });
+      .json({ message: status[status.BAD_REQUEST], error: true });
 
-  let style = new Style();
   style.name = req.body.name;
   style.description = req.body.description;
   style.tags = req.body.tags.map((tag) => transform(tag)) || undefined;
 
   style.id = req.params.style;
-  let styleExists = await style.find();
+  const isStyle = await style.find();
 
-  if (!styleExists)
+  if (!isStyle)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
-  style = await style.save(styleData);
+  const response = await style.save();
 
-  return res
-    .status(status.OK)
-    .json({ message: status[status.BAD_REQUEST], data: style });
+  return res.status(status.OK).json({ message: status[status.OK], response });
 });
 
-router.post("/:style/favorite", async (req, res) => {
-  let style = new Style();
+router.post("/:style/favorite", auth, async (req, res) => {
   style.id = req.params.style;
-  let styleExists = await style.find();
+  const isStyle = await style.find();
 
   if (!styleExists)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
-  const favorite = await style.favorite(req.user.id);
+  const response = await style.favorite(req.user.id);
 
   return res
     .status(status.CREATED)
-    .json({ message: status[status.CREATED], data: favorite });
+    .json({ message: status[status.CREATED], response });
 });
 
-router.delete("/:style/unfavorite", async (req, res) => {
-  let style = new Style();
+router.delete("/:style/unfavorite", auth, async (req, res) => {
   style.id = req.params.style;
-  let styleExists = await style.find();
+  const isStyle = await style.find();
 
-  if (!styleExists)
+  if (!isStyle)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
-  let favorite = await style.isFavorited(req.user.id);
+  const isFavorited = await style.isFavorited(req.user.id);
 
-  if (!favorite)
+  if (!isFavorited)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   await style.unfavorite(req.user.id);
 
@@ -265,54 +253,47 @@ router.delete("/:style/unfavorite", async (req, res) => {
 });
 
 router.put("/:style/upvote", async (req, res) => {
-  let style = new Style();
   style.id = req.params.style;
-  let styleExists = await style.find();
+  const isStyle = await style.find();
 
-  if (!styleExists)
+  if (!style)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   const upvote = await style.upvote(req.user.id);
 
-  return res
-    .status(status.OK)
-    .json({ message: status[status.OK], data: upvote });
+  return res.status(status.OK).json({ message: status[status.OK], upvote });
 });
 
 router.put("/:style/downvote", async (req, res) => {
-  let style = new Style();
   style.id = req.params.style;
   let styleExists = await style.find();
 
   if (!styleExists)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   const downvote = await style.downvote(req.user.id);
 
-  return res
-    .status(status.OK)
-    .json({ message: status[status.OK], data: downvote });
+  return res.status(status.OK).json({ message: status[status.OK], downvote });
 });
 
 router.delete("/:style/unvote", async (req, res) => {
-  let style = new Style();
   style.id = req.params.style;
-  let styleExists = await style.find();
+  const isStyle = await style.find();
 
-  if (!styleExists)
+  if (!isStyle)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
   const vote = await style.isVoted(req.user.id);
 
   if (!vote)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   await style.unvote(req.user.id);
 
@@ -320,48 +301,41 @@ router.delete("/:style/unvote", async (req, res) => {
 });
 
 router.patch("/:style/publish", async (req, res) => {
-  let style = new Style();
   style.id = req.params.style;
-  let styleExists = await style.find();
+  const isStyle = await style.find();
 
-  if (!styleExists)
+  if (!isStyle)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  style = await style.save({ published: true });
+  const response = await style.save({ published: true });
 
-  return res
-    .status(status.OK)
-    .json({ message: status[status.OK], data: style });
+  return res.status(status.OK).json({ message: status[status.OK], response });
 });
 
 router.patch("/:style/unpublish", async (req, res) => {
-  let style = new Style();
   style.id = req.params.style;
-  let styleExists = await style.find();
+  const isStyle = await style.find();
 
-  if (!styleExists)
+  if (!isStyle)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
-  style = await style.save({ published: false });
+  const response = await style.save({ published: false });
 
-  return res
-    .status(status.OK)
-    .json({ message: status[status.NOT_FOUND], data: style });
+  return res.status(status.OK).json({ message: status[status.OK], response });
 });
 
 router.delete("/:style", async (req, res) => {
-  let style = new Style();
   style.id = req.params.style;
-  let styleExists = await style.find();
+  const isStyle = await style.find();
 
-  if (!styleExists)
+  if (!isStyle)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   await style.delete();
 

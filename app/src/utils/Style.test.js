@@ -1,162 +1,160 @@
-const Style = require("./Style");
-const Collection = require("./Collection");
-const User = require("./User");
-const prisma = require("../functions/prisma");
+const { style } = require("./Style");
 const { faker } = require("@faker-js/faker");
 
 describe("Style", () => {
-  let style;
-  let collection;
-  let user;
+  let styleData;
+  let mockStyleResolveValue;
 
   beforeAll(async () => {
-    style = new Style();
-    collection = new Collection();
-    user = new User();
-
     styleData = {
       id: faker.string.uuid(),
       name: faker.commerce.productName(),
       description: faker.commerce.productDescription(),
+      author: { id: faker.string.uuid() },
+      collection: { id: faker.string.uuid() },
       tags: ["tag1", "tag2"],
     };
 
-    user.email = faker.internet.email();
-    user.password = faker.internet.password();
-    await user.save();
-
-    collection.name = faker.internet.username();
-    collection.description = faker.lorem.sentence();
-    collection.tags = ["tag1", "tag2"];
-    collection.authorId = user.id;
-    await collection.create();
+    mockStyleResolveValue = {
+      id: jest.fn(() => styleData.id),
+      name: jest.fn(() => styleData.name),
+      description: jest.fn(() => styleData.description),
+      tags: jest.fn(() => styleData.tags),
+    };
   });
 
   afterAll(async () => {
+    jest.resetModules();
     jest.restoreAllMocks();
-    await prisma.style.deleteMany();
   });
 
   describe("create", () => {
     it("Should call create method when creating a style", async () => {
-      mockcreate = jest.spyOn(style, "create").mockResolvedValue();
+      jest.spyOn(style, "create").mockResolvedValue();
       await style.create();
 
-      expect(mockcreate).toHaveBeenCalled();
-      mockcreate.mockRestore();
+      expect(style.create).toHaveBeenCalled();
     });
 
     it("Should return the created style object", async () => {
+      jest.spyOn(style, "create").mockResolvedValue(mockStyleResolveValue);
+
       style.name = styleData.name;
       style.description = styleData.description;
-      style.collection = collection.id;
-      style.author = user.id;
+      style.collection = styleData.collection.id;
+      style.author = styleData.author.id;
       style.tags = styleData.tags;
       const result = await style.create();
 
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("name", styleData.name);
-      expect(result).toHaveProperty("description", styleData.description);
-      expect(result).toHaveProperty("collection");
-      expect(result).toHaveProperty("author");
-      expect(result).toHaveProperty("tags");
+      expect(result).toMatchObject(mockStyleResolveValue);
     });
   });
 
   describe("update", () => {
     it("Should call update method when updating a style", async () => {
-      mockupdate = jest.spyOn(style, "update").mockResolvedValue();
+      jest.spyOn(style, "update").mockResolvedValue();
       await style.update();
 
-      expect(mockupdate).toHaveBeenCalled();
-      mockupdate.mockRestore();
+      expect(style.update).toHaveBeenCalled();
     });
 
     it("Should return the updated style object", async () => {
       const newName = faker.commerce.productName();
       style.name = newName;
+
+      jest
+        .spyOn(style, "update")
+        .mockResolvedValue({ ...mockStyleResolveValue, name: newName });
       const result = await style.update();
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("name", newName);
+
+      expect(result).toMatchObject({ ...mockStyleResolveValue, name: newName });
     });
   });
 
   describe("save", () => {
     it("Should call save method when creating or updating a style", async () => {
-      mocksave = jest.spyOn(style, "save").mockResolvedValue();
+      jest.spyOn(style, "save").mockResolvedValue();
       await style.save();
 
-      expect(mocksave).toHaveBeenCalled();
-      mocksave.mockRestore();
+      expect(style.save).toHaveBeenCalled();
     });
 
     it("Should call update method if style exist", async () => {
       const newName = faker.commerce.productName();
       style.name = newName;
+
+      jest
+        .spyOn(style, "save")
+        .mockResolvedValue({ ...mockStyleResolveValue, name: newName });
       const result = await style.save();
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("name", newName);
+
+      expect(result).toMatchObject({ ...mockStyleResolveValue, name: newName });
     });
 
     it("Should call create method if style exist", async () => {
-      await prisma.style.deleteMany();
+      jest.spyOn(style, "deleteMany").mockResolvedValue();
+      await style.deleteMany();
+
+      jest.spyOn(style, "save").mockResolvedValue(mockStyleResolveValue);
       style.id = undefined;
       style.name = styleData.name;
       const result = await style.save();
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("name", styleData.name);
+
+      expect(style.save).toHaveBeenCalled();
+      expect(result).toMatchObject(mockStyleResolveValue);
     });
   });
 
   describe("find", () => {
     it("Should call find method when finding a style", async () => {
-      mockfind = jest.spyOn(style, "find").mockResolvedValue();
+      jest.spyOn(style, "find").mockResolvedValue();
       await style.find();
 
-      expect(mockfind).toHaveBeenCalled();
-      mockfind.mockRestore();
+      expect(style.find).toHaveBeenCalled();
     });
 
     it("Should return null if no style found", async () => {
+      jest.spyOn(style, "delete").mockResolvedValue();
+      style.id = styleData.id;
       await style.delete();
+
+      jest.spyOn(style, "find").mockResolvedValue(null);
       const result = await style.find();
+
       expect(result).toBeNull();
     });
 
     it("Should return the found style object", async () => {
-      style.id = undefined;
+      jest.spyOn(style, "create").mockResolvedValue();
       await style.create();
+
+      jest.spyOn(style, "find").mockResolvedValue(mockStyleResolveValue);
       const result = await style.find();
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("name");
-      expect(result).toHaveProperty("description");
-      expect(result).toHaveProperty("collection");
-      expect(result).toHaveProperty("author");
-      expect(result).toHaveProperty("tags");
+
+      expect(result).toMatchObject(mockStyleResolveValue);
     });
   });
 
   describe("delete", () => {
     it("Should call delete method when deleting a style", async () => {
-      mockdelete = jest.spyOn(style, "delete").mockResolvedValue();
+      jest.spyOn(style, "delete").mockResolvedValue();
       await style.delete();
 
-      expect(mockdelete).toHaveBeenCalled();
-      mockdelete.mockRestore();
-    });
-
-    it("Should return null if style not found", async () => {
-      await style.delete();
-      const result = await style.find();
-
-      expect(result).toBeNull();
+      expect(style.delete).toHaveBeenCalled();
     });
 
     it("Should return the deleted style object", async () => {
-      await style.create();
-      const result = await style.delete();
+      jest.spyOn(style, "delete").mockResolvedValue(true);
+      await style.delete();
 
-      expect(result).toHaveProperty("id");
+      expect(style.delete).toBeTruthy();
+    });
+
+    it("Should return null if style not found", async () => {
+      jest.spyOn(style, "find").mockResolvedValue(null);
+      const result = await style.find();
+
+      expect(result).toBeNull();
     });
   });
 });

@@ -4,15 +4,15 @@ services:
     command: ["sh", "/app/entrypoint.sh"]
     volumes:
       - ./app:/app
-    # develop:
-    #   watch:
-    #     - action: sync
-    #       path: ./app
-    #       target: /app
-    #       ignore:
-    #         - /app/node_modules/
-    #     - action: rebuild
-    #       path: /app/package.json
+    develop:
+      watch:
+        - action: sync
+          path: ./app
+          target: /app
+          ignore:
+            - /app/node_modules/
+        - action: rebuild
+          path: /app/package.json
     networks:
       - network
     working_dir: /app

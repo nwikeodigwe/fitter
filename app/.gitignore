@@ -1,6 +1,13 @@
-/backend/node_modules
-/backend/dist
-/backend/coverage
+/node_modules
+/dist
+/coverage
+*.env*
+*.log
 
-/backend/*.env*
-/backend/*.log
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

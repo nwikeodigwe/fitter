@@ -1,10 +1,11 @@
 const express = require("express");
-const Collection = require("../utils/Collection");
-const Style = require("../utils/Style");
+const { collection } = require("../utils/Collection");
+const { style } = require("../utils/Style");
+const auth = require("../middleware/auth");
 const { status } = require("http-status");
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+router.post("/", auth, async (req, res) => {
   if (!req.body.name || !req.body.description)
     return res
       .status(status.BAD_REQUEST)
@@ -15,199 +16,196 @@ router.post("/", async (req, res) => {
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], data: {} });
 
-  let collectionData = {};
+  let data = {};
 
   if (!!req.body.tags && req.body.tags.length > 0)
-    collectionData.tags = req.body.tags.map((tag) =>
+    data.tags = req.body.tags.map((tag) =>
       tag
         .trim()
         .toLowerCase()
         .replace(/[^a-zA-Z0-9]/g, "")
     );
 
-  collectionData = {
+  data = {
     name: req.body.name,
     description: req.body.description,
     authorId: req.user.id,
   };
 
-  let collection = new Collection();
-  collection = await collection.save(collectionData);
+  const response = await collection.save(data);
 
   res
     .status(status.CREATED)
-    .json({ message: status[status.CREATED], data: collection });
+    .json({ message: status[status.CREATED], data: response });
 });
 
 router.get("/", async (req, res) => {
-  let collections = new Collection();
-  collections = await collections.findMany();
+  const collections = await collection.findMany();
 
   if (!collections.length)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   res.status(status.OK).json({ message: status[status.OK], data: collections });
 });
 
-router.get("/:collection", async (req, res) => {
-  let collection = new Collection();
-  collection.id = req.params.collection;
-  collection = await collection.find();
+router.get("/tags", async (req, res) => {
+  const tags = await collection.getTags();
 
-  if (!collection)
+  if (!tags.length)
+    return res
+      .status(status.NOT_FOUND)
+      .json({ message: status[status.NOT_FOUND], error: true });
+
+  return res.status(status.OK).json({ message: status[status.OK], tags });
+});
+
+router.get("/:collection", async (req, res) => {
+  collection.id = req.params.collection;
+  const isCollection = await collection.find();
+
+  if (!isCollection)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  res.status(status.OK).json({ message: status[status.OK], data: collection });
+  res.status(status.OK).json({ message: status[status.OK], collection });
 });
 
 router.get("/:collection/styles", async (req, res) => {
-  let styles = new Style();
-  styles.collectionId = req.params.collection;
-  styles = await styles.findMany();
+  style.collection = req.params.collection;
+  const styles = await style.findMany();
 
   if (!styles.length)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  res.status(status.OK).json({ message: status[status.OK], data: styles });
+  res.status(status.OK).json({ message: status[status.OK], styles });
 });
 
-router.post("/:collection/favorite", async (req, res) => {
-  let collection = new Collection();
+router.post("/:collection/favorite", auth, async (req, res) => {
   collection.id = req.params.collection;
-  let collectionExists = await collection.find();
+  let isCollection = await collection.find();
 
-  if (!collectionExists)
+  if (!isCollection)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   let favorite = await collection.favorite(req.user.id);
 
   res
     .status(status.CREATED)
-    .json({ message: status[status.CREATED], data: favorite });
+    .json({ message: status[status.CREATED], favorite });
 });
 
-router.delete("/:collection/unfavorite", async (req, res) => {
-  let collection = new Collection();
+router.delete("/:collection/unfavorite", auth, async (req, res) => {
   collection.id = req.params.collection;
-  let collectionExists = await collection.find();
+  const isCollection = await collection.find();
 
-  if (!collectionExists)
+  if (!isCollection)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
-  let favorite = await collection.isFavorited(req.user.id);
+  const isFavorited = await collection.isFavorited(req.user.id);
 
-  if (!favorite)
+  if (!isFavorited)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   await collection.unfavorite(req.user.id);
 
   res.status(status.NO_CONTENT).end();
 });
 
-router.put("/:collection/upvote", async (req, res) => {
-  let collection = new Collection();
+router.put("/:collection/upvote", auth, async (req, res) => {
   collection.id = req.params.collection;
-  let collectionExists = await collection.find();
+  const isCollection = await collection.find();
 
-  if (!collectionExists)
+  if (!isCollection)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   const upvote = await collection.upvote(req.user.id);
 
-  res
-    .status(status.OK)
-    .json({ message: status[status.BAD_REQUEST], data: upvote });
+  res.status(status.OK).json({ message: status[status.BAD_REQUEST], upvote });
 });
 
 router.put("/:collection/downvote", async (req, res) => {
-  let collection = new Collection();
   collection.id = req.params.collection;
-  let collectionExists = await collection.find();
+  const isCollection = await collection.find();
 
-  if (!collectionExists)
+  if (!isCollection)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   const downvote = await collection.downvote(req.user.id);
 
-  res.status(status.OK).json({ message: status[status.OK], data: downvote });
+  res.status(status.OK).json({ message: status[status.OK], downvote });
 });
 
-router.delete("/:collection/unvote", async (req, res) => {
-  let collection = new Collection();
+router.delete("/:collection/unvote", auth, async (req, res) => {
   collection.id = req.params.collection;
-  let collectionExists = await collection.find();
+  const isCollection = await collection.find();
 
-  if (!collectionExists)
+  if (!isCollection)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
-  const vote = await collection.isVoted(req.user.id);
+  const isVoted = await collection.isVoted(req.user.id);
 
-  if (!vote)
+  if (!isVoted)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   await collection.unvote(req.user.id);
 
   res.status(status.NO_CONTENT).end();
 });
 
-router.patch("/:collection", async (req, res) => {
-  let collection = new Collection();
+router.patch("/:collection", auth, async (req, res) => {
   collection.id = req.params.collection;
-  let collectionExists = await collection.find();
+  const isCollection = await collection.find();
 
-  if (!collectionExists)
+  if (!isCollection)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   if (req.body.tags && !Array.isArray(req.body.tags))
     return res
       .status(status.BAD_REQUEST)
-      .json({ message: status[status.BAD_REQUEST], data: {} });
+      .json({ message: status[status.BAD_REQUEST], error: true });
 
-  let collectionData = { ...req.body };
+  let data = { ...req.body };
   if (req.body.tags && req.body.tags.length > 0)
-    collectionData.tags = req.body.tags.map((tag) =>
+    data.tags = req.body.tags.map((tag) =>
       tag
         .trim()
         .toLowerCase()
         .replace(/[^a-zA-Z0-9]/g, "")
     );
 
-  collection = collection.save(collectionData);
+  const response = collection.save(data);
 
-  res.status(status.OK).json({ message: status[status.OK], data: collection });
+  res.status(status.OK).json({ message: status[status.OK], response });
 });
 
-router.delete("/:collection", async (req, res) => {
-  let collection = new Collection();
-  collection.id = req.params.collection;
-  let collectionExists = await collection.find();
+router.delete("/:collection", auth, async (req, res) => {
+  const isCollection = await collection.find();
 
-  if (!collectionExists)
+  if (!isCollection)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], error: true });
 
   await collection.delete();
 

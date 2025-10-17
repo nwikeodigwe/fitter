@@ -1,0 +1,7 @@
+{
+  "welcome": {
+    "template": "welcome",
+    "subject": "welcome to fitter",
+    "from": "Acme <onboarding@resend.dev>"
+  }
+}

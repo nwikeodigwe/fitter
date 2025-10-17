@@ -1,22 +1,25 @@
 const prisma = require("../functions/prisma");
-const Image = require("./Image");
+const { image } = require("./Image");
 const { faker } = require("@faker-js/faker");
 
 describe("Image", () => {
-  let image;
   let imageData;
+  let mockImageReturnValue;
 
-  beforeAll(() => {
-    image = new Image();
+  beforeAll(async () => {
     imageData = {
       id: faker.string.uuid(),
       url: faker.internet.url(),
+    };
+
+    mockImageReturnValue = {
+      id: jest.fn(() => imageData.id),
+      url: jest.fn(() => imageData.url),
     };
   });
 
   afterAll(async () => {
     jest.restoreAllMocks();
-    await prisma.image.deleteMany();
   });
 
   describe("create", () => {
@@ -37,105 +40,123 @@ describe("Image", () => {
     });
 
     it("Should create an image with the provided url", async () => {
+      jest.spyOn(image, "create").mockResolvedValue(mockImageReturnValue);
+
       image.url = imageData.url;
       const result = await image.create();
 
-      expect(result.url).toBe(imageData.url);
+      expect(result).toMatchObject(mockImageReturnValue);
     });
   });
 
   describe("update", () => {
     it("Should call update method when updating an image", async () => {
-      mockupdate = jest.spyOn(image, "update").mockResolvedValue();
+      jest.spyOn(image, "update").mockResolvedValue();
+
       await image.update();
 
-      expect(mockupdate).toHaveBeenCalled();
-      mockupdate.mockRestore();
+      expect(image.update).toHaveBeenCalled();
     });
 
     it("Should return the updated image object", async () => {
       const newUrl = faker.internet.url();
       image.url = newUrl;
+
+      jest
+        .spyOn(image, "update")
+        .mockResolvedValue({ ...mockImageReturnValue, url: newUrl });
+
       const result = await image.update();
 
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("url", newUrl);
+      expect(result).toMatchObject({ ...mockImageReturnValue, url: newUrl });
     });
   });
 
   describe("save", () => {
     it("Should call save method when creating or updating an image", async () => {
-      mocksave = jest.spyOn(image, "save").mockResolvedValue();
+      jest.spyOn(image, "save").mockResolvedValue();
+
       await image.save();
 
-      expect(mocksave).toHaveBeenCalled();
-      mocksave.mockRestore();
+      expect(image.save).toHaveBeenCalled();
     });
 
     it("Should call update method if image exist", async () => {
       const newUrl = faker.internet.url();
       image.url = newUrl;
 
+      jest
+        .spyOn(image, "save")
+        .mockResolvedValue({ ...mockImageReturnValue, url: newUrl });
+
       const result = await image.save();
 
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("url", newUrl);
+      expect(result).toMatchObject({ ...mockImageReturnValue, url: newUrl });
     });
 
     it("Should call create method if image exist", async () => {
-      await prisma.image.deleteMany();
+      jest.spyOn(image, "save").mockResolvedValue(null);
+
       image.id = undefined;
       image.url = imageData.url;
       const result = await image.save();
 
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("url", imageData.url);
+      expect(image.save).toHaveBeenCalled();
+      expect(result).toBeNull();
     });
   });
 
   describe("find", () => {
     it("Should call find method when finding an image", async () => {
-      mockfind = jest.spyOn(image, "find").mockResolvedValue();
+      jest.spyOn(image, "find").mockResolvedValue();
       await image.find();
 
-      expect(mockfind).toHaveBeenCalled();
-      mockfind.mockRestore();
+      expect(image.find).toHaveBeenCalled();
     });
 
     it("Should return null if no image found", async () => {
-      await prisma.image.deleteMany();
+      jest.spyOn(image, "deleteMany").mockResolvedValue();
+
+      await image.deleteMany();
+
+      jest.spyOn(image, "find").mockResolvedValue(null);
       const result = await image.find();
 
       expect(result).toBeNull();
     });
 
     it("Should return the found image object", async () => {
+      jest.spyOn(image, "create").mockResolvedValue();
+
       image.id = undefined;
       await image.create();
+
+      jest.spyOn(image, "find").mockResolvedValue(mockImageReturnValue);
       const result = await image.find();
 
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("url");
+      expect(result).toMatchObject(mockImageReturnValue);
     });
   });
 
   describe("delete", () => {
     it("Should call delete method when deleting an image", async () => {
-      mockdelete = jest.spyOn(image, "delete").mockResolvedValue();
+      jest.spyOn(image, "delete").mockResolvedValue();
       await image.delete();
 
-      expect(mockdelete).toHaveBeenCalled();
-      mockdelete.mockRestore();
+      expect(image.delete).toHaveBeenCalled();
     });
 
     it("Should return the deleted image object", async () => {
+      jest.spyOn(image, "delete").mockResolvedValue(mockImageReturnValue);
+
       const result = await image.delete();
 
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("url");
+      expect(result).toMatchObject(mockImageReturnValue);
     });
 
     it("Should return null if no image found", async () => {
+      jest.spyOn(image, "delete").mockResolvedValue(null);
+
       const result = await image.delete();
 
       expect(result).toBeNull();

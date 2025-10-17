@@ -1,19 +1,19 @@
-const { Resend } = require("resend");
+const { resend } = require("../startup/resend");
 const handlebars = require("handlebars");
 const fs = require("fs");
 const path = require("path");
+const { logger } = require("./Logger");
 
 class Mail {
   constructor() {
-    this.resend = new Resend(process.env.RESEND_API_KEY);
     this.from = process.env.EMAIL_USER;
-
     this.WELCOME = "welcome";
-    this.WELCOME_SUBJECT = "Welcome to Resend";
+    this.WELCOME_SUBJECT = "Welcome to Fitter App";
     this.WELCOME_FROM = "Acme <onboarding@resend.dev>";
   }
 
   template(templateName = "welcome", context = {}) {
+    logger.info("Getting email template");
     this.templateName = templateName;
     const filePath = path.join(
       __dirname,
@@ -26,6 +26,7 @@ class Mail {
   }
 
   content(htmlContent) {
+    logger.info("Adding html content...");
     this.htmlContent = htmlContent;
     this.to = htmlContent.email;
     this.subject = htmlContent.subject;
@@ -34,7 +35,8 @@ class Mail {
   }
 
   async send(emailTemplate) {
-    return await this.resend.emails.send({
+    logger.info("Sending email");
+    return resend.emails.send({
       from: this.from,
       to: this.to,
       subject: this.subject,
@@ -46,4 +48,5 @@ class Mail {
   }
 }
 
-module.exports = new Mail();
+const mail = new Mail();
+module.exports = { mail, Mail };
