@@ -53,55 +53,55 @@ router.post("/:type/:type_id", async (req, res) => {
     .json({ message: status[status.CREATED], created });
 });
 
-// router.post("/:type/:type_id/:comment", async (req, res) => {
-//   const type = req.params.type;
-//   const valid = ["brand", "item", "style", "collection"];
-//   const Model = models[req.params.type];
+router.post("/:type/:type_id/:comment", async (req, res) => {
+  const type = req.params.type;
+  const valid = ["brand", "item", "style", "collection"];
+  const Model = models[req.params.type];
 
-//   if (req.body.tags && !Array.isArray(req.body.tags))
-//     return res
-//       .status(status.BAD_REQUEST)
-//       .json({ message: status[status.BAD_REQUEST], error: true });
+  if (req.body.tags && !Array.isArray(req.body.tags))
+    return res
+      .status(status.BAD_REQUEST)
+      .json({ message: status[status.BAD_REQUEST], error: true });
 
-//   if (!req.body.content)
-//     return res
-//       .status(status.BAD_REQUEST)
-//       .json({ message: status[status.BAD_REQUEST], error: true });
+  if (!req.body.content)
+    return res
+      .status(status.BAD_REQUEST)
+      .json({ message: status[status.BAD_REQUEST], error: true });
 
-//   if (!valid.includes(type))
-//     return res
-//       .status(status.BAD_REQUEST)
-//       .json({ message: status[status.BAD_REQUEST], error: true });
+  if (!valid.includes(type))
+    return res
+      .status(status.BAD_REQUEST)
+      .json({ message: status[status.BAD_REQUEST], error: true });
 
-//   Model.id = req.params.id;
-//   const isExist = await Model.find();
+  Model.id = req.params.id;
+  const isExist = await Model.find();
 
-//   if (!isExist)
-//     return res
-//       .status(status.NOT_FOUND)
-//       .json({ message: status[status.NOT_FOUND], error: true });
+  if (!isExist)
+    return res
+      .status(status.NOT_FOUND)
+      .json({ message: status[status.NOT_FOUND], error: true });
 
-//   comment.id = req.params.comment;
-//   const isComment = await comment.find();
+  comment.id = req.params.comment;
+  const isComment = await comment.find();
 
-//   if (!isComment)
-//     return res.status(status.NOT_FOUND).json({
-//       message: status[status.NOT_FOUND],
-//       data: {},
-//     });
+  if (!isComment)
+    return res.status(status.NOT_FOUND).json({
+      message: status[status.NOT_FOUND],
+      data: {},
+    });
 
-//   comment.content = req.body.content;
-//   comment.tags = req.body.tags.map((tag) => transform(tag)) || undefined;
-//   comment.userId = req.user.id;
-//   comment.entity = ENTITY;
-//   comment.entityId = brand.id;
-//   comment.parent = req.params.comment;
-//   comment = await comment.save();
+  comment.content = req.body.content;
+  comment.tags = req.body.tags.map((tag) => transform(tag)) || undefined;
+  comment.userId = req.user.id;
+  comment.entity = ENTITY;
+  comment.entityId = brand.id;
+  comment.parent = req.params.comment;
+  comment = await comment.save();
 
-//   return res
-//     .status(status.CREATED)
-//     .json({ message: status[status.CREATED], data: comment });
-// });
+  return res
+    .status(status.CREATED)
+    .json({ message: status[status.CREATED], data: comment });
+});
 
 router.get("/:comment", async (req, res) => {
   comment.id = req.params.comment;

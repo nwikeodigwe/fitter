@@ -28,6 +28,7 @@ router.post("/", auth, async (req, res) => {
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], data: {} });
 
+  // const item = new Item();
   if (req.body.creator) {
     user.id = req.body.creator;
     const creator = await user.find({ id: req.body.creator });
@@ -67,6 +68,12 @@ router.get("/", async (req, res) => {
   res.status(status.OK).json({ message: status[status.OK], items });
 });
 
+router.get("/count", async (req, res) => {
+  // const item = new Item();
+  const count = item.count();
+  res.status(status.OK).json({ message: status[status.OK], count });
+});
+
 router.get("/tags", async (req, res) => {
   const tags = await item.getTags();
 
@@ -90,88 +97,7 @@ router.get("/:item([a-zA-Z0-9_-]+)", async (req, res) => {
   res.status(status.OK).json({ message: status[status.OK], item });
 });
 
-// router.post("/:item/favorite", async (req, res) => {
-//   item.id = req.params.item;
-//   let itemExists = await item.find();
-
-//   if (!itemExists)
-//     return res
-//       .status(status.NOT_FOUND)
-//       .json({ message: status[status.NOT_FOUND], data: {} });
-
-//   const favorite = await item.favorite(req.user.id);
-
-//   res
-//     .status(status.CREATED)
-//     .json({ message: status[status.CREATED], data: favorite });
-// });
-
-// router.delete("/:item/unfavorite", async (req, res) => {
-//   item.id = req.params.item;
-//   let itemExists = await item.find();
-
-//   if (!itemExists)
-//     return res
-//       .status(status.NOT_FOUND)
-//       .json({ message: status[status.NOT_FOUND], data: {} });
-
-//   let favorite = await item.isFavorited(req.user.id);
-
-//   if (!favorite)
-//     return res
-//       .status(status.BAD_REQUEST)
-//       .json({ message: status[status.BAD_REQUEST], data: {} });
-
-//   await item.unfavorite(req.user.id);
-
-//   res.status(status.NO_CONTENT).end();
-// });
-
-// router.put("/:item/upvote", async (req, res) => {
-//   item.id = req.params.item;
-//   let itemExists = await item.find();
-
-//   if (!itemExists)
-//     return res
-//       .status(status.NOT_FOUND)
-//       .json({ message: status[status.NOT_FOUND], data: {} });
-
-//   const upvote = await item.upvote(req.user.id);
-
-//   res.status(status.OK).json({ message: status[status.OK], data: upvote });
-// });
-
-// router.put("/:item/downvote", async (req, res) => {
-//   item.id = req.params.item;
-//   let itemExists = await item.find();
-
-//   if (!itemExists)
-//     return res
-//       .status(status.NOT_FOUND)
-//       .json({ message: status[status.NOT_FOUND], data: {} });
-
-//   const downvote = await item.downvote(req.user.id);
-
-//   res.status(status.OK).json({ message: status.OK, data: downvote });
-// });
-
-// router.delete("/:item/unvote", async (req, res) => {
-//   item.id = req.params.item;
-//   let itemExists = await item.find();
-
-//   if (!itemExists)
-//     return res
-//       .status(status.NOT_FOUND)
-//       .json({ message: status[status.NOT_FOUND], data: {} });
-
-//   await item.unvote(req.user.id);
-
-//   res.status(status.NO_CONTENT).end();
-// });
-
 router.patch("/:item", async (req, res) => {
-  logger.info("Update item by id route");
-
   if (
     req.body.images &&
     (!Array.isArray(req.body.images) || req.body.images.length === 0)
@@ -201,12 +127,9 @@ router.patch("/:item", async (req, res) => {
     );
   }
 
-  // logger.info(req.params.item);
-
+  // const item = new Item();
   item.id = req.params.item;
   let itemExists = await item.find();
-
-  logger.info(itemExists);
 
   if (!itemExists) {
     logger.error("Item not found");
@@ -224,6 +147,7 @@ router.patch("/:item", async (req, res) => {
 });
 
 router.delete("/:item", async (req, res) => {
+  // const item = new Item();
   item.id = req.params.item;
   let itemExists = await item.find();
 

@@ -7,8 +7,6 @@ const { status } = require("http-status");
 const transform = require("../functions/transform");
 const router = express.Router();
 
-const ENTITY = "STYLE";
-
 router.post("/", auth, async (req, res) => {
   if (!req.body.name || !req.body.description)
     return res
@@ -48,6 +46,11 @@ router.get("/", async (req, res) => {
       .json({ message: status[status.NOT_FOUND], error: true });
 
   return res.status(status.OK).json({ message: status[status.OK], styles });
+});
+
+router.get("/count", async (req, res) => {
+  const count = await style.count();
+  res.status(status.OK).json({ message: status[status.OK], count });
 });
 
 router.get("/tags", async (req, res) => {

@@ -4,6 +4,8 @@ const { user } = require("../utils/User");
 const { faker } = require("@faker-js/faker");
 const { status } = require("http-status");
 
+// jest.mock("../utils/User");
+
 let server;
 
 describe("Auth route", () => {

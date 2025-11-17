@@ -137,6 +137,10 @@ class Collection {
     });
   }
 
+  count(where = {}) {
+    return prisma.collection.count({ where: { ...where } });
+  }
+
   getTags(
     where = {},
     limit = 10,

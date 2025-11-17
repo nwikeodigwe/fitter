@@ -14,9 +14,9 @@ routes(app);
 prod(app);
 
 if (require.main === module) {
-  const mongo_uri = process.env.MONGO_URI || "mongodb://localhost:27017/fitter";
+  // const mongo_uri = process.env.MONGO_URI || "mongodb://localhost:27017/fitter";
   app.listen(process.env.PORT, async () => {
-    await mongoose.connect(mongo_uri);
+    // await mongoose.connect(mongo_uri);
     logger.info(`Listening on port ${process.env.PORT}...`);
   });
 }

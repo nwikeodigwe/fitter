@@ -165,6 +165,10 @@ class Style {
     });
   }
 
+  count(where = {}) {
+    return prisma.style.count({ where: { ...where } });
+  }
+
   getTags(
     where = {},
     limit = 4,

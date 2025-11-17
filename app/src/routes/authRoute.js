@@ -1,6 +1,7 @@
 const express = require("express");
 const { user } = require("../utils/User");
 const { status } = require("http-status");
+const {newsletter} = require("../utils/Newsletter");
 const router = express.Router();
 
 router.post("/signup", async (req, res) => {
@@ -10,6 +11,7 @@ router.post("/signup", async (req, res) => {
       error: true,
     });
 
+  // const user = new User();
   user.email = req.body.email;
   user.password = req.body.password;
 
@@ -21,14 +23,15 @@ router.post("/signup", async (req, res) => {
       error: true,
     });
 
+  if (req.body.subscribe) newsletter.save(user.email);
+
   await user.save();
   await user.mail("welcome");
 
-  const login = await user.login();
-
   return res
     .status(status.CREATED)
-    .json({ message: status[status.CREATED], login });
+    .json({ message: status[status.CREATED] })
+    .end();
 });
 
 router.post("/signin", async (req, res) => {
@@ -38,6 +41,7 @@ router.post("/signin", async (req, res) => {
       error: true,
     });
 
+  // const user = new User();
   user.email = req.body.email;
   user.password = req.body.password;
 
@@ -69,6 +73,7 @@ router.post("/reset", async (req, res) => {
       error: true,
     });
 
+  // const user = new User();
   user.email = req.body.email;
   const isUser = await user.find();
 
@@ -90,6 +95,7 @@ router.post("/reset/:token", async (req, res) => {
       error: true,
     });
 
+  // const user = new User();
   user.resetToken = req.params.token;
 
   const isValidResetToken = await user.isValidResetToken();

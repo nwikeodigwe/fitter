@@ -167,6 +167,10 @@ class Brand {
     });
   }
 
+  count(where = {}) {
+    return prisma.brand.count({ where: { ...where } });
+  }
+
   getTags(
     where = {},
     limit = 4,

@@ -223,6 +223,10 @@ class Item {
     });
   }
 
+  count(where = {}) {
+    return prisma.item.count({ where: { ...where } });
+  }
+
   getTags(
     where = {},
     limit = 4,

@@ -11,7 +11,7 @@ module.exports = async (req, res, next) => {
         .status(status.UNAUTHORIZED)
         .json({
           message: status[status.UNAUTHORIZED],
-          error: "Auth Middleware",
+          error: true,
         });
 
     logger.info("Decoding token...");

@@ -1,6 +1,7 @@
 const express = require("express");
 const actionRoute = require("../routes/actionRoute");
 const authRoute = require("../routes/authRoute");
+const locationRoute = require("../routes/locationRoute");
 const userRoute = require("../routes/userRoute");
 const brandRoute = require("../routes/brandRoute");
 const styleRoute = require("../routes/styleRoute");
@@ -19,13 +20,13 @@ const cors = require("cors");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("../swagger.json");
 
-const ALLOWED_ORIGIN = [
+const ALLOWED_ORIGINS = [
   process.env.FRONTEND_ORIGIN,
   process.env.TRANSFORMER_ORIGIN,
 ];
 
 module.exports = (app) => {
-  app.use(cors({ origin: ALLOWED_ORIGIN, credentials: true }));
+  app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
   app.use(helmet());
   app.use(limiter);
   app.use(express.json());
@@ -33,6 +34,7 @@ module.exports = (app) => {
   app.use(passport.initialize());
   app.use("/doc", swaggerUi.serve);
   app.get("/docs", swaggerUi.setup(swaggerDocument));
+  app.use("/api/location", locationRoute);
   app.use("/api/auth", authRoute);
   app.use("/api/collection", collectionRoute);
   app.use("/api/brand", brandRoute);

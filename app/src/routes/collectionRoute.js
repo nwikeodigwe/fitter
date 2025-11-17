@@ -50,6 +50,11 @@ router.get("/", async (req, res) => {
   res.status(status.OK).json({ message: status[status.OK], data: collections });
 });
 
+router.get("/count", async (req, res) => {
+  const count = await collection.count();
+  res.status(status.OK).json({ message: status[status.OK], count });
+});
+
 router.get("/tags", async (req, res) => {
   const tags = await collection.getTags();
 
@@ -83,92 +88,6 @@ router.get("/:collection/styles", async (req, res) => {
       .json({ message: status[status.NOT_FOUND], data: {} });
 
   res.status(status.OK).json({ message: status[status.OK], styles });
-});
-
-router.post("/:collection/favorite", auth, async (req, res) => {
-  collection.id = req.params.collection;
-  let isCollection = await collection.find();
-
-  if (!isCollection)
-    return res
-      .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], error: true });
-
-  let favorite = await collection.favorite(req.user.id);
-
-  res
-    .status(status.CREATED)
-    .json({ message: status[status.CREATED], favorite });
-});
-
-router.delete("/:collection/unfavorite", auth, async (req, res) => {
-  collection.id = req.params.collection;
-  const isCollection = await collection.find();
-
-  if (!isCollection)
-    return res
-      .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], error: true });
-
-  const isFavorited = await collection.isFavorited(req.user.id);
-
-  if (!isFavorited)
-    return res
-      .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], error: true });
-
-  await collection.unfavorite(req.user.id);
-
-  res.status(status.NO_CONTENT).end();
-});
-
-router.put("/:collection/upvote", auth, async (req, res) => {
-  collection.id = req.params.collection;
-  const isCollection = await collection.find();
-
-  if (!isCollection)
-    return res
-      .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], error: true });
-
-  const upvote = await collection.upvote(req.user.id);
-
-  res.status(status.OK).json({ message: status[status.BAD_REQUEST], upvote });
-});
-
-router.put("/:collection/downvote", async (req, res) => {
-  collection.id = req.params.collection;
-  const isCollection = await collection.find();
-
-  if (!isCollection)
-    return res
-      .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], error: true });
-
-  const downvote = await collection.downvote(req.user.id);
-
-  res.status(status.OK).json({ message: status[status.OK], downvote });
-});
-
-router.delete("/:collection/unvote", auth, async (req, res) => {
-  collection.id = req.params.collection;
-  const isCollection = await collection.find();
-
-  if (!isCollection)
-    return res
-      .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], error: true });
-
-  const isVoted = await collection.isVoted(req.user.id);
-
-  if (!isVoted)
-    return res
-      .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], error: true });
-
-  await collection.unvote(req.user.id);
-
-  res.status(status.NO_CONTENT).end();
 });
 
 router.patch("/:collection", auth, async (req, res) => {
