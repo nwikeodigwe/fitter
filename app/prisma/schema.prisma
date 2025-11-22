@@ -103,10 +103,10 @@ model Brand {
   slug              String              @unique
   published         Boolean             @default(false)
   description       String?
+  releaseYear       Int?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
-  logo              Logo?               @relation(fields: [logoId], references: [id], onDelete: Cascade)
-  logoId            String?             @unique
+  images            Image[]             @relation("BrandImage")
   owner             User?               @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   ownerId           String?
   BrandSubscription BrandSubscription[]
@@ -135,6 +135,7 @@ model Collection {
   name           String
   slug           String               @unique
   published      Boolean              @default(false)
+  releaseYear    Int?
   description    String?
   authorId       String?
   createdAt      DateTime             @default(now())
@@ -142,6 +143,7 @@ model Collection {
   author         User?                @relation("UserAuthoredCollection", fields: [authorId], references: [id], onDelete: Cascade)
   CollectionVote CollectionVote[]
   favoritedBy    FavoriteCollection[]
+  images         Image[]              @relation("CollectionImage")
   styles         Style[]
   tags           Tag[]                @relation("CollectionTags")
 
@@ -154,6 +156,7 @@ model Style {
   slug         String          @unique
   description  String
   published    Boolean         @default(false)
+  releaseYear  Int?
   collectionId String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
@@ -162,6 +165,7 @@ model Style {
   authorId     String?
   collection   Collection?     @relation(fields: [collectionId], references: [id])
   StyleVote    StyleVote[]
+  images       Image[]         @relation("StyleImage")
   items        Item[]          @relation("StyleItem")
   tags         Tag[]           @relation("StyleTags")
 
@@ -179,6 +183,7 @@ model Item {
   colorScheme  String?
   depthMap     String?
   releaseYear  Int?
+  gender       GENDER         @default(NEUTRAL)
   published    Boolean        @default(false)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -196,30 +201,32 @@ model Item {
   @@index([creatorId], map: "Item_creatorId_fkey")
 }
 
-model Logo {
-  id        String   @id @default(cuid())
-  imageId   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  Brand     Brand?
-  image     Image    @relation(fields: [imageId], references: [id], onDelete: Cascade)
+// model Logo {
+//   id        String   @id @default(cuid())
+//   imageId   String
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+//   Brand     Brand?
+//   image     Image    @relation(fields: [imageId], references: [id], onDelete: Cascade)
 
-  @@index([imageId], map: "Logo_imageId_fkey")
-}
+//   @@index([imageId], map: "Logo_imageId_fkey")
+// }
 
 model Image {
-  id        String   @id @default(cuid())
-  url       String   @unique
-  createdAt DateTime @default(now())
-  Logo      Logo[]
-  item      Item[]   @relation("ItemImage")
+  id         String       @id @default(cuid())
+  url        String       @unique
+  createdAt  DateTime     @default(now())
+  brand      Brand[]      @relation("BrandImage")
+  style      Style[]      @relation("StyleImage")
+  collection Collection[] @relation("CollectionImage")
+  item       Item[]       @relation("ItemImage")
 }
 
 model Comment {
   id          String        @id @default(cuid())
   content     String
   authorId    String
-  entity      Entity
+  entity      MODEL
   entityId    String
   parentId    String?
   createdAt   DateTime      @default(now())
@@ -347,7 +354,13 @@ model CommentVote {
   @@index([commentId], map: "CommentVote_commentId_fkey")
 }
 
-enum Entity {
+enum GENDER {
+  MAN
+  WOMAN
+  NEUTRAL
+}
+
+enum MODEL {
   STYLE
   ITEM
   COMMENT

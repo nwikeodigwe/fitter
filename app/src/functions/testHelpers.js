@@ -1,10 +1,10 @@
-const { user } = require("../utils/User");
-const { image } = require("../utils/Image");
-const { brand } = require("../utils/Brand");
-const { collection } = require("../utils/Collection");
-const { style } = require("../utils/Style");
-const { item } = require("../utils/Item");
-const { comment } = require("../utils/Comment");
+const { user } = require("../utils/user");
+const { image } = require("../utils/image");
+const { brand } = require("../utils/brand");
+const { collection } = require("../utils/collection");
+const { style } = require("../utils/style");
+const { item } = require("../utils/item");
+const { comment } = require("../utils/comment");
 const { faker } = require("@faker-js/faker");
 const prisma = require("./prisma");
 

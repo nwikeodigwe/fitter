@@ -1,12 +1,11 @@
 const { app } = require("../app");
-const { user } = require("../utils/User");
-const { collection } = require("../utils/Collection");
-const { style } = require("../utils/Style");
+const { users } = require("../utils/user");
+const { collections } = require("../utils/collection");
+const { styles } = require("../utils/style");
 const { status } = require("http-status");
 const { faker } = require("@faker-js/faker");
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
-const method = require("../const/http-methods");
 
 let server;
 
@@ -18,9 +17,10 @@ describe("Collection route", () => {
   let mockCollectionResolveValue;
   let styleData;
   let mockStyleResolveValue;
-  let mockResponse;
+  let endpoint;
 
   beforeAll(async () => {
+    endpoint = "/api/collections";
     server = app.listen(0);
 
     userData = {
@@ -50,11 +50,11 @@ describe("Collection route", () => {
       token: refresh,
     };
 
-    jest.spyOn(user, "login").mockResolvedValue(mockUserLoginResolveToken);
+    jest.spyOn(users, "login").mockResolvedValue(mockUserLoginResolveToken);
 
-    user.email = userData.email;
-    user.password = userData.password;
-    login = await user.login();
+    users.email = userData.email;
+    users.password = userData.password;
+    login = await users.login();
 
     header = { Authorization: `Bearer ${token}` };
 
@@ -110,29 +110,29 @@ describe("Collection route", () => {
 
   describe("POST /", () => {
     it("Should return 400_BAD_REQUEST if name and description are not given", async () => {
-      const res = await request(server).post("/api/collection").set(header);
+      const res = await request(server).post(endpoint).set(header);
 
       expect(res.status).toBe(status.BAD_REQUEST);
     });
 
     it("Should return 400_BAD_REQUEST if tag is not an array", async () => {
-      collection.tags = "tag1";
+      collections.tags = "tag1";
 
       const res = await request(server)
-        .post("/api/collection")
+        .post(endpoint)
         .set(header)
-        .send(collection);
+        .send(collections);
 
       expect(res.status).toBe(status.BAD_REQUEST);
     });
 
     it("Should return 201_CREATED collection created", async () => {
       jest
-        .spyOn(collection, "save")
+        .spyOn(collections, "save")
         .mockResolvedValue(mockCollectionResolveValue);
 
       const res = await request(server)
-        .post("/api/collection")
+        .post(endpoint)
         .set(header)
         .send({ ...collectionData, id: undefined });
 
@@ -142,19 +142,19 @@ describe("Collection route", () => {
 
   describe("GET /", () => {
     it("Should return 404_NOT_FOUND if no collection found", async () => {
-      jest.spyOn(collection, "findMany").mockResolvedValue([]);
+      jest.spyOn(collections, "findMany").mockResolvedValue([]);
 
-      const res = await request(server).get("/api/collection").set(header);
+      const res = await request(server).get(endpoint).set(header);
 
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 200_OK if collection found", async () => {
       jest
-        .spyOn(collection, "findMany")
+        .spyOn(collections, "findMany")
         .mockResolvedValue([mockCollectionResolveValue]);
 
-      const res = await request(server).get("/api/collection").set(header);
+      const res = await request(server).get(endpoint).set(header);
 
       expect(res.status).toBe(status.OK);
     });
@@ -162,10 +162,10 @@ describe("Collection route", () => {
 
   describe("GET /:collection", () => {
     it("Should return 404_NOT_FOUND if collection not fouund", async () => {
-      jest.spyOn(collection, "find").mockResolvedValue(null);
+      jest.spyOn(collections, "find").mockResolvedValue(null);
 
       const res = await request(server)
-        .get("/api/collection/invalid_collection_id")
+        .get(`${endpoint}/invalid_collection_id`)
         .set(header);
 
       expect(res.status).toBe(status.NOT_FOUND);
@@ -173,13 +173,13 @@ describe("Collection route", () => {
 
     it("Should return 200_OK if collection found", async () => {
       jest
-        .spyOn(collection, "find")
+        .spyOn(collections, "find")
         .mockResolvedValue(mockCollectionResolveValue);
 
-      collection.id = collectionData.id;
+      collections.id = collectionData.id;
 
       const res = await request(server)
-        .get(`/api/collection/${collection.id}`)
+        .get(`${endpoint}/${collections.id}`)
         .set(header);
 
       expect(res.status).toBe(status.OK);
@@ -188,43 +188,48 @@ describe("Collection route", () => {
 
   describe("GET /:collection/styles", () => {
     it("Should return 404_NOT_FOUND if no style found", async () => {
-      jest.spyOn(style, "findMany").mockResolvedValue([]);
+      const find = jest.spyOn(styles, "findMany").mockResolvedValue([]);
 
       const res = await request(server)
-        .get(`/api/collection/${collection.id}/styles`)
+        .get(`${endpoint}/${collections.id}/styles`)
         .set(header);
 
+      expect(find).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 200_OK if style is found", async () => {
-      jest.spyOn(style, "findMany").mockResolvedValue([mockStyleResolveValue]);
+      const find = jest
+        .spyOn(styles, "findMany")
+        .mockResolvedValue([mockStyleResolveValue]);
 
       const res = await request(server)
-        .get(`/api/collection/${collection.id}/styles`)
+        .get(`${endpoint}/${collections.id}/styles`)
         .set(header);
 
+      expect(find).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
   });
 
   describe("PATCH /:collection", () => {
     it("Should return 404_NOT_FOUND if collection not found", async () => {
-      jest.spyOn(collection, "find").mockResolvedValue(null);
+      const find = jest.spyOn(collections, "find").mockResolvedValue(null);
       const res = await request(server)
-        .patch("/api/collection/invalid_collection_id")
+        .patch(`${endpoint}/invalid_collection_id`)
         .set(header);
 
+      expect(find).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 400_BAD_REQUEST if tag is not an array", async () => {
-      jest
-        .spyOn(collection, "find")
+      const find = jest
+        .spyOn(collections, "find")
         .mockResolvedValue(mockCollectionResolveValue);
 
       const res = await request(server)
-        .patch(`/api/collection/${collection.id}`)
+        .patch(`${endpoint}/${collections.id}`)
         .set(header)
         .send({
           ...collectionData,
@@ -232,53 +237,59 @@ describe("Collection route", () => {
           id: undefined,
         });
 
+      expect(find).toHaveBeenCalled();
       expect(res.status).toBe(status.BAD_REQUEST);
     });
 
     it("Should return 200_OK if collection updated", async () => {
-      jest
-        .spyOn(collection, "find")
+      const find = jest
+        .spyOn(collections, "find")
         .mockResolvedValue(mockCollectionResolveValue);
 
       const newname = faker.commerce.productName();
 
-      jest
-        .spyOn(collection, "save")
+      const save = jest
+        .spyOn(collections, "save")
         .mockResolvedValue({ ...mockCollectionResolveValue, name: newname });
 
       const res = await request(server)
-        .patch(`/api/collection/${collection.id}`)
+        .patch(`${endpoint}/${collections.id}`)
         .set(header)
         .send({ ...collectionData, name: newname, id: undefined });
 
+      expect(find).toHaveBeenCalled();
+      expect(save).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
   });
 
   describe("DELETE /:collection", () => {
     it("Should return 404_NOT_FOUND if collection not found", async () => {
-      jest.spyOn(collection, "find").mockResolvedValue(null);
+      const find = jest.spyOn(collections, "find").mockResolvedValue(null);
 
       const res = await request(server)
-        .delete("/api/collection/invalid_collection_id")
+        .delete(`${endpoint}/invalid_collection_id`)
         .set(header);
 
+      expect(find).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 204 if collection deleted", async () => {
-      jest
-        .spyOn(collection, "find")
+      const find = jest
+        .spyOn(collections, "find")
         .mockResolvedValue(mockCollectionResolveValue);
 
-      jest
-        .spyOn(collection, "delete")
+      const del = jest
+        .spyOn(collections, "delete")
         .mockResolvedValue(mockCollectionResolveValue);
 
       const res = await request(server)
-        .delete(`/api/collection/${collection.id}`)
+        .delete(`${endpoint}/${collections.id}`)
         .set(header);
 
+      expect(find).toHaveBeenCalled();
+      expect(del).toHaveBeenCalled();
       expect(res.status).toBe(status.NO_CONTENT);
     });
   });

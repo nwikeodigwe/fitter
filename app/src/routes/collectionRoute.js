@@ -1,6 +1,6 @@
 const express = require("express");
-const { collection } = require("../utils/Collection");
-const { style } = require("../utils/Style");
+const { collections } = require("../utils/collection");
+const { styles } = require("../utils/style");
 const auth = require("../middleware/auth");
 const { status } = require("http-status");
 const router = express.Router();
@@ -32,31 +32,85 @@ router.post("/", auth, async (req, res) => {
     authorId: req.user.id,
   };
 
-  const response = await collection.save(data);
+  const response = await collections.save(data);
 
   res
     .status(status.CREATED)
-    .json({ message: status[status.CREATED], data: response });
+    .json({ message: status[status.CREATED], collection: response });
 });
 
 router.get("/", async (req, res) => {
-  const collections = await collection.findMany();
+  const sort = req.query.sort;
+  const brand = req.query.brand;
+  const gender = req.query.gender;
+  const color = req.query.color;
+  const releaseYear = req.query.releaseYear;
+  const tag = req.query.tag;
+  const limit = Number(req.query.limit) || undefined;
+  const offset = Number(req.query.offset) || undefined;
+  const popular = { favoriteBy: { _count: "desc" } };
+  const newest = { releaseYear: "desc" };
+  const latest = { createdAt: "desc" };
 
-  if (!collections.length)
+  const order =
+    sort === "newest" ? newest : sort === "latest" ? latest : popular;
+
+  const filter = {
+    AND: [
+      brand && {
+        styles: {
+          items: {
+            brand: { name: { contains: brand, lte: "insensitive" } },
+          },
+        },
+      },
+      gender && {
+        gender: gender.toUpperCase(),
+      },
+      color && {
+        styles: {
+          items: {
+            color,
+            _count: "desc",
+          },
+        },
+      },
+      releaseYear && {
+        releaseYear: Number(releaseYear),
+      },
+      tag && {
+        tags: {
+          some: {
+            name: {
+              contains: tag,
+              lte: "insensitive",
+            },
+          },
+        },
+      },
+    ].filter(Boolean),
+  };
+
+  const many = await collections.findMany(filter, limit, offset, order);
+
+  if (!many.length)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], error: true });
+      .json({ message: status[status.NOT_FOUND], collections: many });
 
-  res.status(status.OK).json({ message: status[status.OK], data: collections });
+  const count = await collections.count(filter);
+  res
+    .status(status.OK)
+    .json({ message: status[status.OK], collections, count });
 });
 
 router.get("/count", async (req, res) => {
-  const count = await collection.count();
+  const count = await collections.count();
   res.status(status.OK).json({ message: status[status.OK], count });
 });
 
 router.get("/tags", async (req, res) => {
-  const tags = await collection.getTags();
+  const tags = await collections.getTags();
 
   if (!tags.length)
     return res
@@ -67,32 +121,34 @@ router.get("/tags", async (req, res) => {
 });
 
 router.get("/:collection", async (req, res) => {
-  collection.id = req.params.collection;
-  const isCollection = await collection.find();
+  collections.id = req.params.collection;
+  const isCollection = await collections.find();
 
   if (!isCollection)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  res.status(status.OK).json({ message: status[status.OK], collection });
+  res
+    .status(status.OK)
+    .json({ message: status[status.OK], collections: isCollection });
 });
 
 router.get("/:collection/styles", async (req, res) => {
-  style.collection = req.params.collection;
-  const styles = await style.findMany();
+  styles.collection = req.params.collection;
+  const many = await styles.findMany();
 
-  if (!styles.length)
+  if (!many.length)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  res.status(status.OK).json({ message: status[status.OK], styles });
+  res.status(status.OK).json({ message: status[status.OK], styles: many });
 });
 
 router.patch("/:collection", auth, async (req, res) => {
-  collection.id = req.params.collection;
-  const isCollection = await collection.find();
+  collections.id = req.params.collection;
+  const isCollection = await collections.find();
 
   if (!isCollection)
     return res
@@ -113,20 +169,20 @@ router.patch("/:collection", auth, async (req, res) => {
         .replace(/[^a-zA-Z0-9]/g, "")
     );
 
-  const response = collection.save(data);
+  const response = collections.save(data);
 
   res.status(status.OK).json({ message: status[status.OK], response });
 });
 
 router.delete("/:collection", auth, async (req, res) => {
-  const isCollection = await collection.find();
+  const isCollection = await collections.find();
 
   if (!isCollection)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
 
-  await collection.delete();
+  await collections.delete();
 
   res.status(status.NO_CONTENT).end();
 });

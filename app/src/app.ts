@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
-import logger from "./utils/Logger";
+import logger from "./utils/logger";
 import routes from "./startup/routes";
 import prod from "./startup/prod";
 import mongoose from "mongoose";

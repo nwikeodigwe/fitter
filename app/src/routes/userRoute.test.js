@@ -1,22 +1,21 @@
 const { app } = require("../app");
-const { user } = require("../utils/User");
-const { style } = require("../utils/Style");
-const { collection } = require("../utils/Collection");
-const { profile } = require("../utils/Profile");
+const { users } = require("../utils/user");
+const { styles } = require("../utils/style");
+const { collections } = require("../utils/collection");
 const { faker } = require("@faker-js/faker");
 const { status } = require("http-status");
 const jwt = require("jsonwebtoken");
 const request = require("supertest");
-const method = require("../const/http-methods");
 let server;
 
 describe("User route", () => {
   let header;
   let userData;
   let mockUserLoginResolveToken;
-  let mockResponse;
+  let endpoint;
 
   beforeAll(async () => {
+    endpoint = "/api/users";
     server = app.listen(0);
 
     userData = {
@@ -46,11 +45,11 @@ describe("User route", () => {
       token: refresh,
     };
 
-    jest.spyOn(user, "login").mockResolvedValue(mockUserLoginResolveToken);
+    jest.spyOn(users, "login").mockResolvedValue(mockUserLoginResolveToken);
 
-    user.email = userData.email;
-    user.password = userData.password;
-    login = await user.login();
+    users.email = userData.email;
+    users.password = userData.password;
+    login = await users.login();
 
     header = { Authorization: `Bearer ${token}` };
 
@@ -68,258 +67,289 @@ describe("User route", () => {
 
   describe("GET /", () => {
     it("Should return 404_NOT_FOUND if no user is found", async () => {
-      jest.spyOn(user, "findMany").mockResolvedValue([]);
+      jest.spyOn(users, "findMany").mockResolvedValue([]);
 
-      const res = await request(server).get("/api/user").set(header);
+      const res = await request(server).get(endpoint).set(header);
 
+      expect(users.findMany).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 200_OK if user found", async () => {
-      jest.spyOn(user, "findMany").mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "findMany").mockResolvedValue(["1", "2"]);
 
-      const res = await request(server).get("/api/user").set(header);
+      const res = await request(server).get(endpoint).set(header);
+
+      expect(users.findMany).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
   });
 
   describe("POST /:user/subscribe", () => {
     it("Should return 404_NOT_FOUND if user not found", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(null);
+      jest.spyOn(users, "find").mockResolvedValue(null);
 
       const res = await request(server)
-        .post(`/api/user/userId/subscribe`)
+        .post(`${endpoint}/userId/subscribe`)
         .set(header);
+
+      expect(users.find).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 201_CREATED if subscription successful", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "find").mockResolvedValue(true);
 
-      jest
-        .spyOn(user, "subscribe")
-        .mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "subscribe").mockResolvedValue(true);
 
       const res = await request(server)
-        .post(`/api/user/${user.id}/subscribe`)
+        .post(`${endpoint}/${users.id}/subscribe`)
         .set(header);
 
+      expect(users.find).toHaveBeenCalled();
+      expect(users.subscribe).toHaveBeenCalled();
       expect(res.status).toBe(status.CREATED);
     });
 
     it("Should return 400_BAD_REQUEST if already subscribed", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "find").mockResolvedValue(true);
 
-      jest
-        .spyOn(user, "isSubscribed")
-        .mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "isSubscribed").mockResolvedValue(true);
 
-      jest.spyOn(request(server), method.POST).mockReturnValue(mockResponse);
       const res = await request(server)
-        .post(`/api/user/${user.id}/subscribe`)
+        .post(`${endpoint}/${users.id}/subscribe`)
         .set(header);
 
+      expect(users.find).toHaveBeenCalled();
+      expect(users.isSubscribed).toHaveBeenCalled();
       expect(res.status).toBe(status.BAD_REQUEST);
     });
   });
 
   describe("DELETE /:user/unsubscribe", () => {
     it("Should return 404_NOT_FOUND if user not found", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(null);
+      jest.spyOn(users, "find").mockResolvedValue(null);
 
       const res = await request(server)
-        .delete(`/api/user/invalid_user_id/unsubscribe`)
+        .delete(`${endpoint}/invalid_user_id/unsubscribe`)
         .set(header);
+
+      expect(users.find).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 204_NO_CONTENT if unsubscribed", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "find").mockResolvedValue(true);
 
-      jest
-        .spyOn(user, "isSubscribed")
-        .mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "isSubscribed").mockResolvedValue(true);
 
-      jest
-        .spyOn(user, "unsubscribe")
-        .mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "unsubscribe").mockResolvedValue(true);
 
       const res = await request(server)
-        .delete(`/api/user/${user.id}/unsubscribe`)
+        .delete(`${endpoint}/${users.id}/unsubscribe`)
         .set(header);
 
+      expect(users.find).toHaveBeenCalled();
+      expect(users.isSubscribed).toHaveBeenCalled();
+      expect(users.unsubscribe).toHaveBeenCalled();
       expect(res.status).toBe(status.NO_CONTENT);
     });
 
     it("Should return 400_BAD_REQUEST if not subscribed", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "find").mockResolvedValue(true);
 
-      jest.spyOn(user, "isSubscribed").mockResolvedValue(false);
+      jest.spyOn(users, "isSubscribed").mockResolvedValue(false);
 
       const res = await request(server)
-        .delete(`/api/user/${user.id}/unsubscribe`)
+        .delete(`${endpoint}/${users.id}/unsubscribe`)
         .set(header);
+
+      expect(users.find).toHaveBeenCalled();
+      expect(users.isSubscribed).toHaveBeenCalled();
       expect(res.status).toBe(status.BAD_REQUEST);
     });
   });
 
   describe("GET /:user/style", () => {
     it("should return 404_NOT_FOUND if user not found", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(null);
+      jest.spyOn(users, "find").mockResolvedValue(null);
 
       const res = await request(server)
-        .get("/api/user/invalid_user_id/style")
+        .get(`${endpoint}/invalid_user_id/style`)
         .set(header);
+
+      expect(users.find).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("should return 404_NOT_FOUND if no style found", async () => {
-      jest.spyOn(style, "find").mockResolvedValue([]);
-
+      jest.spyOn(users, "find").mockResolvedValue(true);
+      jest.spyOn(styles, "findMany").mockResolvedValue([]);
       const res = await request(server)
-        .get(`/api/user/${user.id}/style`)
+        .get(`${endpoint}/${users.id}/style`)
         .set(header);
 
+      expect(users.find).toHaveBeenCalled();
+      expect(styles.findMany).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("should return 200_OK if style found", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "find").mockResolvedValue(true);
 
-      jest.spyOn(style, "findMany").mockResolvedValue([{ id: "style_id" }]);
+      jest.spyOn(styles, "findMany").mockResolvedValue([{ id: "style_id" }]);
 
-      user.id = userData.id;
+      users.id = userData.id;
 
       const res = await request(server)
-        .get(`/api/user/${user.id}/style`)
+        .get(`${endpoint}/${users.id}/style`)
         .set(header);
 
+      expect(users.find).toHaveBeenCalled();
+      expect(styles.findMany).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
   });
 
   describe("GET /:user/collection", () => {
     it("should return 404_NOT_FOUND if user not found", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(null);
+      jest.spyOn(users, "find").mockResolvedValue(null);
 
       const res = await request(server)
-        .get("/api/user/invalid_user_id/collection")
+        .get(`${endpoint}/invalid_user_id/collection`)
         .set(header);
 
+      expect(users.find).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("should return 200_OK if collection found", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "find").mockResolvedValue(true);
       jest
-        .spyOn(collection, "findMany")
+        .spyOn(collections, "findMany")
         .mockResolvedValue([{ id: "collection_id" }]);
 
       const res = await request(server)
-        .get(`/api/user/${user.id}/collection`)
+        .get(`${endpoint}/${users.id}/collection`)
         .set(header);
+
+      expect(users.find).toHaveBeenCalled();
+      expect(collections.findMany).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
 
     it("should return 404_NOT_FOUND if no collection found", async () => {
-      jest.spyOn(collection, "findMany").mockResolvedValue([]);
+      jest.spyOn(users, "find").mockResolvedValue(true);
+      jest.spyOn(collections, "findMany").mockResolvedValue([]);
 
       const res = await request(server)
-        .get(`/api/user/${user.id}/collection`)
+        .get(`${endpoint}/${users.id}/collection`)
         .set(header);
 
+      expect(users.find).toHaveBeenCalled();
+      expect(collections.findMany).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
   });
 
   describe("PATCH /me", () => {
     it("should return 200_OK if data updated", async () => {
-      jest.spyOn(user, "save").mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "save").mockResolvedValue();
 
       const newname = faker.internet.username();
 
       const res = await request(server)
-        .patch("/api/user/me")
+        .patch(`${endpoint}/me`)
         .set(header)
         .send({ userData, name: newname, id: undefined });
+
+      expect(users.save).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
   });
 
   describe("PATCH /profile", () => {
     it("Should return 200_OK if profile updated", async () => {
-      jest.spyOn(user, "updateProfile").mockResolvedValue({ id: "profile_id" });
+      jest
+        .spyOn(users, "updateProfile")
+        .mockResolvedValue({ id: "profile_id" });
 
       const res = await request(server)
-        .patch("/api/user/profile")
+        .patch(`${endpoint}/profile`)
         .set(header)
         .send({ firstname: faker.internet.username, id: undefined });
+
+      expect(users.updateProfile).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
   });
 
   describe("PATCH /password", () => {
     it("Should return 400_BAD_REQUEST if password is invalid", async () => {
-      jest.spyOn(user, "passwordMatch").mockResolvedValue(false);
+      jest.spyOn(users, "passwordMatch").mockResolvedValue(false);
 
       const res = await request(server)
-        .patch("/api/user/password")
+        .patch(`${endpoint}/password`)
         .set(header)
         .send({ password: "new_password" });
 
+      expect(users.passwordMatch).toHaveBeenCalled();
       expect(res.status).toBe(status.BAD_REQUEST);
     });
 
     it("Should return 200_OK if password is updated", async () => {
-      jest.spyOn(user, "passwordMatch").mockResolvedValue(true);
-
-      const newpassword = faker.internet.password();
-      jest.spyOn(user, "save").mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "passwordMatch").mockResolvedValue(true);
+      jest.spyOn(users, "save").mockResolvedValue(mockUserLoginResolveToken);
 
       const res = await request(server)
-        .patch("/api/user/password")
+        .patch(`${endpoint}/password`)
         .set(header)
-        .send({ password: newpassword });
+        .send({ password: faker.internet.password() });
 
+      expect(users.passwordMatch).toHaveBeenCalled();
+      expect(users.save).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
   });
 
   describe("GET /:user", () => {
     it("Should return 404_NOT_FOUND if user not found", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(null);
+      jest.spyOn(users, "find").mockResolvedValue(null);
 
-      const res = await request(server).get("/api/user/userId").set(header);
+      const res = await request(server).get(`${endpoint}/userId`).set(header);
+
+      expect(users.find).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 200_OK if user found", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "find").mockResolvedValue(true);
 
-      mockResponse = {
-        status: status.OK,
-        body: { message: status[status.OK] },
-      };
+      const res = await request(server)
+        .get(`${endpoint}/${users.id}`)
+        .set(header);
 
-      jest.spyOn(request(server), method.GET).mockReturnValue(mockResponse);
-      const res = await request(server).get(`/api/user/${user.id}`).set(header);
-
+      expect(users.find).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
   });
 
   describe("GET /me", () => {
     it("should return 404_NOT_FOUND if user not found", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(null);
+      jest.spyOn(users, "find").mockResolvedValue(null);
 
-      const res = await request(server).get("/api/user/me").set(header);
+      const res = await request(server).get(`${endpoint}/me`).set(header);
+
+      expect(users.find).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("should return 200_OK if user exist", async () => {
-      jest.spyOn(user, "find").mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(users, "find").mockResolvedValue(true);
 
-      const res = await request(server).get("/api/user/me").set(header);
+      const res = await request(server).get(`${endpoint}/me`).set(header);
+
+      expect(users.find).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
   });

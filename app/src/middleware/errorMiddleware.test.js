@@ -1,4 +1,4 @@
-const logger = require("../utils/Logger");
+const logger = require("../utils/logger");
 const error = require("./error");
 const { status } = require("http-status");
 

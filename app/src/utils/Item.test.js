@@ -1,26 +1,12 @@
-const { item } = require("./Item");
-const { user } = require("./User");
+const { items } = require("./item");
+const prisma = require("../functions/prisma");
 const { faker } = require("@faker-js/faker");
 
 describe("Item", () => {
-  let userData;
   let itemData;
   let mockItemReturnValue;
 
   beforeAll(async () => {
-    userData = {
-      id: faker.string.uuid(),
-      name: faker.internet.username(),
-      email: faker.internet.email(),
-      password: faker.internet.email(),
-    };
-
-    mockUserReturnValue = {
-      id: jest.fn(() => userData.id),
-      name: jest.fn(() => userData.name),
-      email: jest.fn(() => userData.email),
-    };
-
     itemData = {
       id: faker.string.uuid(),
       name: faker.internet.username(),
@@ -46,22 +32,24 @@ describe("Item", () => {
 
   describe("create", () => {
     it("Should call create method when creating an item", async () => {
-      jest.spyOn(item, "create").mockResolvedValue();
-      await item.create();
+      const create = jest
+        .spyOn(prisma.item, "create")
+        .mockResolvedValue(mockItemReturnValue);
+      await items.create();
 
-      expect(item.create).toHaveBeenCalled();
+      expect(create).toHaveBeenCalled();
     });
 
     it("Should return the created item object", async () => {
-      jest.spyOn(item, "create").mockResolvedValue(mockItemReturnValue);
+      jest.spyOn(prisma.item, "create").mockResolvedValue(mockItemReturnValue);
 
-      item.name = itemData.name;
-      item.description = itemData.description;
-      item.images = itemData.images;
-      item.brand = itemData.brand.id;
-      item.tags = ["tag1", "tag2"];
+      items.name = itemData.name;
+      items.description = itemData.description;
+      items.images = itemData.images;
+      items.brand = itemData.brand.id;
+      items.tags = ["tag1", "tag2"];
 
-      const result = await item.create();
+      const result = await items.create();
 
       expect(result).toMatchObject(mockItemReturnValue);
     });
@@ -69,119 +57,113 @@ describe("Item", () => {
 
   describe("update", () => {
     it("Should call update method when updating an item", async () => {
-      jest.spyOn(item, "update").mockResolvedValue();
+      const update = jest.spyOn(prisma.item, "update").mockResolvedValue();
 
-      await item.update();
+      await items.update();
 
-      expect(item.update).toHaveBeenCalled();
+      expect(update).toHaveBeenCalled();
     });
 
     it("Should return the updated item object", async () => {
       const newName = faker.internet.username();
 
       jest
-        .spyOn(item, "update")
+        .spyOn(prisma.item, "update")
         .mockResolvedValue({ ...mockItemReturnValue, newName });
 
-      item.name = newName;
-      const result = await item.update();
+      items.name = newName;
+      const result = await items.update();
 
+      expect(prisma.item.update).toHaveBeenCalled();
       expect(result).toMatchObject({ ...mockItemReturnValue, newName });
     });
   });
 
   describe("save", () => {
-    it("Should call save method when creating or updating an item", async () => {
-      jest.spyOn(item, "save").mockResolvedValue();
-      await item.save();
+    it("Should call create method when creating or updating an item", async () => {
+      const create = jest
+        .spyOn(prisma.item, "create")
+        .mockResolvedValue(mockItemReturnValue);
+      await items.save();
 
-      expect(item.save).toHaveBeenCalled();
+      expect(create).toHaveBeenCalled();
     });
 
     it("Should call update method if item exist", async () => {
-      jest.spyOn(user, "save").mockResolvedValue();
-      user.name = userData.name;
-      user.email = userData.email;
-      user.password = userData.password;
-      await user.save();
+      jest.spyOn(prisma.item, "findFirst").mockResolvedValue(true);
+      jest.spyOn(prisma.item, "update").mockResolvedValue(mockItemReturnValue);
 
-      jest.spyOn(item, "save").mockResolvedValue();
-      item.name = itemData.name;
-      await item.save();
+      items.name = itemData.name;
+      await items.save();
 
-      expect(item.save).toHaveBeenCalled();
+      expect(prisma.item.findFirst).toHaveBeenCalled();
+      expect(prisma.item.update).toHaveBeenCalled();
     });
 
     it("Should call create method if item does not exist", async () => {
-      jest.spyOn(item, "deleteMany").mockResolvedValue();
+      jest.spyOn(prisma.item, "create").mockResolvedValue(mockItemReturnValue);
+      jest.spyOn(prisma.item, "findFirst").mockResolvedValue(null);
 
-      await item.deleteMany();
+      items.id = undefined;
+      await items.save();
 
-      jest.spyOn(item, "save").mockResolvedValue(null);
-
-      item.id = undefined;
-      const result = await item.save();
-
-      expect(item.save).toHaveBeenCalled();
-      expect(result).toBeNull();
+      expect(prisma.item.findFirst).toHaveBeenCalled();
+      expect(prisma.item.create).toHaveBeenCalled();
     });
   });
 
   describe("find", () => {
     it("Should call find method when finding an item", async () => {
-      jest.spyOn(item, "find").mockResolvedValue();
+      jest.spyOn(prisma.item, "findFirst").mockResolvedValue();
 
-      await item.find();
+      await items.find();
 
-      expect(item.find).toHaveBeenCalled();
+      expect(prisma.item.findFirst).toHaveBeenCalled();
     });
 
     it("Should return the found item object", async () => {
-      jest.spyOn(item, "create").mockResolvedValue();
-      await item.create();
+      jest
+        .spyOn(prisma.item, "findFirst")
+        .mockResolvedValue(mockItemReturnValue);
+      const result = await items.find();
 
-      jest.spyOn(item, "find").mockResolvedValue(mockItemReturnValue);
-      const result = await item.find();
-
+      expect(prisma.item.findFirst).toHaveBeenCalled();
       expect(result).toMatchObject(mockItemReturnValue);
     });
 
     it("Should return null if no item found", async () => {
-      jest.spyOn(item, "deleteMany").mockResolvedValue();
-      await item.deleteMany();
+      jest.spyOn(prisma.item, "findFirst").mockResolvedValue(null);
+      const result = await items.find();
 
-      jest.spyOn(item, "find").mockResolvedValue(null);
-      const result = await item.find();
-
+      expect(prisma.item.findFirst).toHaveBeenCalled();
       expect(result).toBeNull();
     });
   });
 
   describe("delete", () => {
     it("Should call delete method when deleting an item", async () => {
-      jest.spyOn(item, "delete").mockResolvedValue();
-      await item.delete();
+      jest.spyOn(prisma.item, "findFirst").mockResolvedValue(true);
+      jest.spyOn(prisma.item, "delete").mockResolvedValue();
+      await items.delete();
 
-      expect(item.delete).toHaveBeenCalled();
+      expect(prisma.item.findFirst).toHaveBeenCalled();
+      expect(prisma.item.delete).toHaveBeenCalled();
     });
 
     it("Should return null if no item found", async () => {
-      jest.spyOn(item, "deleteMany").mockResolvedValue();
-      await item.deleteMany();
+      jest.spyOn(prisma.item, "findFirst").mockResolvedValue(null);
+      const result = await items.delete();
 
-      jest.spyOn(item, "delete").mockResolvedValue(null);
-      const result = await item.delete();
-
-      expect(result).toBeNull();
+      expect(prisma.item.findFirst).toHaveBeenCalled();
+      expect(result).toBeFalsy();
     });
 
     it("Should return the deleted item object", async () => {
-      jest.spyOn(item, "create").mockResolvedValue(mockItemReturnValue);
-      await item.create();
+      jest.spyOn(prisma.item, "findFirst").mockResolvedValue(true);
+      jest.spyOn(prisma.item, "delete").mockResolvedValue(mockItemReturnValue);
+      const result = await items.delete();
 
-      jest.spyOn(item, "delete").mockResolvedValue(mockItemReturnValue);
-      const result = await item.delete();
-
+      expect(prisma.item.findFirst).toHaveBeenCalled();
       expect(result).toMatchObject(mockItemReturnValue);
     });
   });

@@ -1,4 +1,5 @@
 const prisma = require("../functions/prisma");
+const { logger } = require("./logger");
 const slugify = require("slugify");
 
 class Style {
@@ -8,6 +9,7 @@ class Style {
     this.slug = this.slug || null;
     this.description = style.description;
     this.collection = style.collection;
+    this.images = style.images;
     this.tags = style.tags || [];
     this.author = style.author;
 
@@ -17,6 +19,7 @@ class Style {
       slug: true,
       description: true,
       tags: { select: { name: true } },
+      images: { select: { id: true, url: true } },
       collection: {
         select: {
           name: true,
@@ -25,6 +28,11 @@ class Style {
       },
       author: {
         select: { name: true, id: true },
+      },
+      releaseYear: true,
+      createdAt: true,
+      _count: {
+        select: { items: true },
       },
     };
   }
@@ -38,6 +46,7 @@ class Style {
     this.name = style.name || this.name;
     this.slug = style.slug || this.slug || this.#createSlug(this.name);
     this.description = style.description || this.description;
+    this.images = style.images || this.images;
     this.tags = style.tags || this.tags;
     this.author = style.author || this.author;
     this.collection = style.collection || this.collection;
@@ -48,79 +57,116 @@ class Style {
   }
 
   async create(style = {}) {
-    const name = style.name || this.name;
-    const slug = style.slug || this.slug || this.#createSlug(name);
-    const description = style.description || this.description;
-    const tags = style.tags || this.tags;
-    const author = style.author || this.author;
-    const collection = style.collection || this.collection;
+    try {
+      const name = style.name || this.name;
+      const slug = style.slug || this.slug || this.#createSlug(name);
+      const description = style.description || this.description;
+      const images = style.images || this.images;
+      const tags = style.tags || this.tags;
+      const author = style.author || this.author;
+      const collection = style.collection || this.collection;
 
-    style = await prisma.style.create({
-      data: {
-        name,
-        slug,
-        description,
-        ...(tags.length > 0
-          ? {
-              tags: {
-                connectOrCreate: tags.map((tag) => ({
-                  where: { name: tag },
-                  create: { name: tag },
-                })),
-              },
-            }
-          : {}),
-        ...(collection
-          ? {
-              collection: {
-                connect: {
-                  id: collection,
+      style = await prisma.style.create({
+        data: {
+          name,
+          slug,
+          description,
+          ...(Array.isArray(images) && images.length > 0
+            ? {
+                images: {
+                  connectOrCreate: images.map((url) => ({
+                    where: { url },
+                    create: { url },
+                  })),
                 },
-              },
-            }
-          : {}),
-        author: {
-          connect: {
-            id: author,
+              }
+            : {}),
+          ...(Array.isArray(tags) && tags.length > 0
+            ? {
+                tags: {
+                  connectOrCreate: tags.map((tag) => ({
+                    where: { name: tag },
+                    create: { name: tag },
+                  })),
+                },
+              }
+            : {}),
+          ...(collection
+            ? {
+                collection: {
+                  connect: {
+                    id: collection,
+                  },
+                },
+              }
+            : {}),
+          author: {
+            connect: {
+              id: author,
+            },
           },
         },
-      },
-      select: this.selectedFields,
-    });
+        select: this.selectedFields,
+      });
 
-    this.id = style.id;
-    return style;
+      this.id = style.id;
+      return style;
+    } catch (err) {
+      logger.error(err);
+    }
   }
 
-  update(style = {}) {
-    const id = style.id || this.id;
-    const name = style.name || this.name;
-    const slug = style.slug || this.slug || this.#createSlug(name);
-    const description = style.description || this.description;
-    const tags = style.tags || this.tags;
-    const collection = style.collection || this.collection;
+  async update(style = {}) {
+    try {
+      const id = style.id || this.id;
+      const name = style.name || this.name;
+      const slug = style.slug || this.slug || this.#createSlug(name);
+      const description = style.description || this.description;
+      const images = style.image || this.images;
+      const tags = style.tags || this.tags;
+      const collection = style.collection || this.collection;
 
-    return prisma.style.update({
-      where: { id },
-      data: {
-        ...(name ? { name } : {}),
-        ...(slug ? { slug } : {}),
-        ...(description ? { description } : {}),
-        ...(tags.length > 0
-          ? {
-              tags: {
-                deleteMany: {},
-                connectOrCreate: tags.map((tag) => ({
-                  where: { name: tag },
-                  create: { name: tag },
-                })),
-              },
-            }
-          : {}),
-        ...(collection ? { collection: { connect: { id: collection } } } : {}),
-      },
-      select: this.selectedFields,
-    });
+      style = await this.find();
+
+      if (!style) return;
+
+      return prisma.style.update({
+        where: { id },
+        data: {
+          ...(name ? { name } : {}),
+          ...(slug ? { slug } : {}),
+          ...(description ? { description } : {}),
+          ...(Array.isArray(images) && images.length > 0
+            ? {
+                images: {
+                  connectOrCreate: images.map((url) => ({
+                    where: { url },
+                    create: { url },
+                  })),
+                },
+              }
+            : {}),
+          ...(Array.isArray(tags) && tags.length > 0
+            ? {
+                tags: {
+                  deleteMany: {},
+                  connectOrCreate: tags.map((tag) => ({
+                    where: { name: tag },
+                    create: { name: tag },
+                  })),
+                },
+              }
+            : {}),
+          ...(collection
+            ? { collection: { connect: { id: collection } } }
+            : {}),
+        },
+        select: this.selectedFields,
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   find(style = {}) {
@@ -150,14 +196,9 @@ class Style {
     });
   }
 
-  findMany(
-    where = {},
-    limit = 10,
-    offset = 0,
-    orderBy = { items: { _count: "desc" } }
-  ) {
+  findMany(filter = {}, limit = 20, offset = 0, orderBy) {
     return prisma.style.findMany({
-      where,
+      where: filter,
       select: { ...this.selectedFields, _count: { select: { items: true } } },
       take: limit,
       skip: offset,
@@ -165,8 +206,8 @@ class Style {
     });
   }
 
-  count(where = {}) {
-    return prisma.style.count({ where: { ...where } });
+  count(filter = {}) {
+    return prisma.style.count({ where: filter });
   }
 
   getTags(
@@ -303,12 +344,22 @@ class Style {
     });
   }
 
-  delete() {
-    return prisma.style.delete({
-      where: {
-        OR: [{ id: this.id }, { slug: this.slug }],
-      },
-    });
+  async delete(style = {}) {
+    try {
+      this.id = style.id || this.id;
+      style = await this.find();
+
+      if (!style) return;
+
+      return prisma.style.delete({
+        where: {
+          OR: [{ id: this.id }, { slug: this.slug }],
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   deleteMany() {
@@ -316,5 +367,5 @@ class Style {
   }
 }
 
-const style = new Style();
-module.exports = { style, Style };
+const styles = new Style();
+module.exports = { styles, Style };

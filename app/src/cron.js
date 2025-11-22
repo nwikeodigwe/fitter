@@ -1,6 +1,6 @@
 const cron = require("node-cron");
-const logger = require("./utils/Logger");
-const scrapper = require("./utils/Scrapper");
+const logger = require("./utils/logger");
+const scrapper = require("./utils/scrapper");
 
 cron.schedule("*/5 * * * *", async () => {
   logger.info("Running cron job every 5 minutes");

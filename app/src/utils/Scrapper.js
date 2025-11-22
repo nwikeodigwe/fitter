@@ -2,8 +2,8 @@ const { request, chromium } = require("playwright-extra");
 const stealth = require("puppeteer-extra-plugin-stealth");
 
 const cheerio = require("cheerio");
-const logger = require("./Logger");
-const { Item } = require("./Item");
+const logger = require("./logger");
+const { Item } = require("./item");
 
 class Scrapper {
   #data = [];

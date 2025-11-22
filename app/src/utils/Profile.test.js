@@ -1,5 +1,5 @@
-const { profile } = require("./Profile");
-const { user } = require("./User");
+const { profile } = require("./profile");
+const { users } = require("./user");
 const { faker } = require("@faker-js/faker");
 
 describe("Profile", () => {
@@ -56,7 +56,7 @@ describe("Profile", () => {
       profile.firstname = profileData.firstname;
       profile.lastname = profileData.lastname;
       profile.bio = profileData.bio;
-      profile.user = user.id;
+      profile.user = users.id;
       const result = await profile.create();
 
       expect(result).toMatchObject(mockProfileResolveValue);
@@ -112,7 +112,7 @@ describe("Profile", () => {
       profile.firstname = profileData.firstname;
       profile.lastname = profileData.lastname;
       profile.bio = profileData.bio;
-      profile.user = user.id;
+      profile.user = users.id;
 
       jest.spyOn(profile, "save").mockResolvedValue(mockProfileResolveValue);
 

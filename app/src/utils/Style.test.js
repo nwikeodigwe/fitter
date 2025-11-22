@@ -1,4 +1,5 @@
-const { style } = require("./Style");
+const { styles } = require("./style");
+const prisma = require("../functions/prisma");
 const { faker } = require("@faker-js/faker");
 
 describe("Style", () => {
@@ -30,131 +31,161 @@ describe("Style", () => {
 
   describe("create", () => {
     it("Should call create method when creating a style", async () => {
-      jest.spyOn(style, "create").mockResolvedValue();
-      await style.create();
+      jest.spyOn(prisma.style, "create").mockResolvedValue({ id: "style_id" });
 
-      expect(style.create).toHaveBeenCalled();
+      await styles.create();
+
+      expect(prisma.style.create).toHaveBeenCalled();
     });
 
     it("Should return the created style object", async () => {
-      jest.spyOn(style, "create").mockResolvedValue(mockStyleResolveValue);
+      jest
+        .spyOn(prisma.style, "create")
+        .mockResolvedValue(mockStyleResolveValue);
 
-      style.name = styleData.name;
-      style.description = styleData.description;
-      style.collection = styleData.collection.id;
-      style.author = styleData.author.id;
-      style.tags = styleData.tags;
-      const result = await style.create();
+      styles.name = styleData.name;
+      styles.description = styleData.description;
+      styles.collection = styleData.collection.id;
+      styles.author = styleData.author.id;
+      styles.tags = styleData.tags;
+      const result = await styles.create();
 
+      expect(prisma.style.create).toHaveBeenCalled();
       expect(result).toMatchObject(mockStyleResolveValue);
     });
   });
 
   describe("update", () => {
     it("Should call update method when updating a style", async () => {
-      jest.spyOn(style, "update").mockResolvedValue();
-      await style.update();
+      jest.spyOn(prisma.style, "findFirst").mockResolvedValue(true);
+      jest.spyOn(prisma.style, "update").mockResolvedValue();
 
-      expect(style.update).toHaveBeenCalled();
+      styles.name = faker.commerce.product();
+      await styles.update();
+
+      expect(prisma.style.findFirst).toHaveBeenCalled();
+      expect(prisma.style.update).toHaveBeenCalled();
     });
 
     it("Should return the updated style object", async () => {
+      jest.spyOn(prisma.style, "findFirst").mockResolvedValue(true);
+
       const newName = faker.commerce.productName();
-      style.name = newName;
+      styles.name = newName;
 
       jest
-        .spyOn(style, "update")
+        .spyOn(prisma.style, "update")
         .mockResolvedValue({ ...mockStyleResolveValue, name: newName });
-      const result = await style.update();
 
+      const result = await styles.update();
+
+      expect(prisma.style.findFirst).toHaveBeenCalled();
+      expect(prisma.style.update).toHaveBeenCalled();
       expect(result).toMatchObject({ ...mockStyleResolveValue, name: newName });
     });
   });
 
   describe("save", () => {
     it("Should call save method when creating or updating a style", async () => {
-      jest.spyOn(style, "save").mockResolvedValue();
-      await style.save();
+      jest.spyOn(prisma.style, "findFirst").mockResolvedValue();
+      await styles.save();
 
-      expect(style.save).toHaveBeenCalled();
+      expect(prisma.style.findFirst).toHaveBeenCalled();
     });
 
     it("Should call update method if style exist", async () => {
       const newName = faker.commerce.productName();
-      style.name = newName;
+      styles.name = newName;
 
+      jest.spyOn(prisma.style, "findFirst").mockResolvedValue(true);
       jest
-        .spyOn(style, "save")
+        .spyOn(prisma.style, "update")
         .mockResolvedValue({ ...mockStyleResolveValue, name: newName });
-      const result = await style.save();
 
+      const result = await styles.save();
+
+      expect(prisma.style.findFirst).toHaveBeenCalled();
+      expect(prisma.style.update).toHaveBeenCalled();
       expect(result).toMatchObject({ ...mockStyleResolveValue, name: newName });
     });
 
     it("Should call create method if style exist", async () => {
-      jest.spyOn(style, "deleteMany").mockResolvedValue();
-      await style.deleteMany();
+      jest.spyOn(prisma.style, "findFirst").mockResolvedValue(null);
+      jest
+        .spyOn(prisma.style, "create")
+        .mockResolvedValue(mockStyleResolveValue);
 
-      jest.spyOn(style, "save").mockResolvedValue(mockStyleResolveValue);
-      style.id = undefined;
-      style.name = styleData.name;
-      const result = await style.save();
+      styles.id = undefined;
+      styles.name = styleData.name;
+      const result = await styles.save();
 
-      expect(style.save).toHaveBeenCalled();
+      expect(prisma.style.findFirst).toHaveBeenCalled();
+      expect(prisma.style.create).toHaveBeenCalled();
       expect(result).toMatchObject(mockStyleResolveValue);
     });
   });
 
   describe("find", () => {
     it("Should call find method when finding a style", async () => {
-      jest.spyOn(style, "find").mockResolvedValue();
-      await style.find();
+      jest.spyOn(prisma.style, "findFirst").mockResolvedValue();
 
-      expect(style.find).toHaveBeenCalled();
+      await styles.find();
+
+      expect(prisma.style.findFirst).toHaveBeenCalled();
     });
 
     it("Should return null if no style found", async () => {
-      jest.spyOn(style, "delete").mockResolvedValue();
-      style.id = styleData.id;
-      await style.delete();
+      jest.spyOn(prisma.style, "findFirst").mockResolvedValue(null);
 
-      jest.spyOn(style, "find").mockResolvedValue(null);
-      const result = await style.find();
+      const result = await styles.find();
 
+      expect(prisma.style.findFirst).toHaveBeenCalled();
       expect(result).toBeNull();
     });
 
     it("Should return the found style object", async () => {
-      jest.spyOn(style, "create").mockResolvedValue();
-      await style.create();
+      jest
+        .spyOn(prisma.style, "findFirst")
+        .mockResolvedValue(mockStyleResolveValue);
 
-      jest.spyOn(style, "find").mockResolvedValue(mockStyleResolveValue);
-      const result = await style.find();
+      const result = await styles.find();
 
+      expect(prisma.style.findFirst).toHaveBeenCalled();
       expect(result).toMatchObject(mockStyleResolveValue);
     });
   });
 
   describe("delete", () => {
     it("Should call delete method when deleting a style", async () => {
-      jest.spyOn(style, "delete").mockResolvedValue();
-      await style.delete();
+      jest.spyOn(prisma.style, "findFirst").mockResolvedValue(true);
+      jest.spyOn(prisma.style, "delete").mockResolvedValue();
 
-      expect(style.delete).toHaveBeenCalled();
+      styles.id = "style_id";
+      await styles.delete();
+
+      expect(prisma.style.findFirst).toHaveBeenCalled();
+      expect(prisma.style.delete).toHaveBeenCalled();
     });
 
     it("Should return the deleted style object", async () => {
-      jest.spyOn(style, "delete").mockResolvedValue(true);
-      await style.delete();
+      jest.spyOn(prisma.style, "findFirst").mockResolvedValue(true);
+      jest
+        .spyOn(prisma.style, "delete")
+        .mockResolvedValue(mockStyleResolveValue);
 
-      expect(style.delete).toBeTruthy();
+      await styles.delete();
+
+      expect(prisma.style.findFirst).toHaveBeenCalled();
+      expect(styles.delete).toBeTruthy();
     });
 
     it("Should return null if style not found", async () => {
-      jest.spyOn(style, "find").mockResolvedValue(null);
-      const result = await style.find();
+      jest.spyOn(prisma.style, "findFirst").mockResolvedValue(null);
 
-      expect(result).toBeNull();
+      styles.id = "style_id";
+      await styles.delete();
+
+      expect(prisma.style.findFirst).toHaveBeenCalled();
     });
   });
 });

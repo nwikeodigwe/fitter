@@ -1,11 +1,10 @@
 const { app } = require("../app");
-const { item } = require("../utils/Item");
-const { user } = require("../utils/User");
+const { items } = require("../utils/item");
+const { users } = require("../utils/user");
 const { faker } = require("@faker-js/faker");
 const { status } = require("http-status");
 const jwt = require("jsonwebtoken");
 const request = require("supertest");
-const method = require("../const/http-methods");
 
 const { response } = require("../functions/testHelpers");
 let server;
@@ -16,9 +15,10 @@ describe("Item route", () => {
   let mockUserLoginResolveToken;
   let itemData;
   let mockItemResolveValue;
-  let mockResponse;
+  let endpoint;
 
   beforeAll(async () => {
+    endpoint = "/api/items";
     server = app.listen(0);
 
     userData = {
@@ -48,11 +48,11 @@ describe("Item route", () => {
       token: refresh,
     };
 
-    jest.spyOn(user, "login").mockResolvedValue(mockUserLoginResolveToken);
+    jest.spyOn(users, "login").mockResolvedValue(mockUserLoginResolveToken);
 
-    user.email = userData.email;
-    user.password = userData.password;
-    login = await user.login();
+    users.email = userData.email;
+    users.password = userData.password;
+    login = await users.login();
 
     header = { Authorization: `Bearer ${token}` };
 
@@ -89,14 +89,14 @@ describe("Item route", () => {
 
   describe("POST /", () => {
     it("Should return 400_BAD_REQUEST if name and description not provided", async () => {
-      const res = await request(server).post("/api/item").set(header);
+      const res = await request(server).post(endpoint).set(header);
 
       expect(res.status).toBe(status.BAD_REQUEST);
     });
 
     it("Should return 400_BAD_REQUEST if image not provided", async () => {
       const res = await request(server)
-        .post("/api/item")
+        .post(endpoint)
         .set(header)
         .send({ ...itemData, images: undefined, id: true });
 
@@ -105,7 +105,7 @@ describe("Item route", () => {
 
     it("Should return 400_BAD_REQUEST if tag is not an array", async () => {
       const res = await request(server)
-        .post("/api/item")
+        .post(endpoint)
         .set(header)
         .send({ ...itemData, tags: "tags", id: true });
       newItem = {};
@@ -115,7 +115,7 @@ describe("Item route", () => {
 
     it("Should return 400_BAD_REQUEST if brand not provided", async () => {
       const res = await request(server)
-        .post("/api/item")
+        .post(endpoint)
         .set(header)
         .send({ ...itemData, brand: undefined, id: undefined });
 
@@ -123,92 +123,102 @@ describe("Item route", () => {
     });
 
     it("Should return 201_CREATED if item created", async () => {
-      jest.spyOn(item, "find").mockResolvedValue(null);
-      jest.spyOn(item, "save").mockResolvedValue(mockItemResolveValue);
-      jest.spyOn(user, "find").mockResolvedValue(mockUserLoginResolveToken);
+      jest.spyOn(items, "save").mockResolvedValue(mockItemResolveValue);
+      jest.spyOn(users, "find").mockResolvedValue(mockUserLoginResolveToken);
 
       const res = await request(server)
-        .post("/api/item")
+        .post(endpoint)
         .set(header)
         .send({ ...itemData, id: undefined });
 
+      expect(items.save).toHaveBeenCalled();
+      expect(users.find).toHaveBeenCalled();
       expect(res.status).toBe(status.CREATED);
     });
   });
 
   describe("GET /", () => {
     it("Should return 404_NOT_FOUND if no item found", async () => {
-      jest.spyOn(item, "findMany").mockResolvedValue([]);
+      const find = jest.spyOn(items, "findMany").mockResolvedValue([]);
 
-      const res = await request(server).get("/api/item").set(header);
+      const res = await request(server).get(endpoint).set(header);
 
+      expect(find).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 200_OK item found", async () => {
-      jest.spyOn(item, "findMany").mockResolvedValue([mockItemResolveValue]);
+      const find = jest
+        .spyOn(items, "findMany")
+        .mockResolvedValue([mockItemResolveValue]);
 
-      const res = await request(server).get(`/api/item`).set(header);
+      const res = await request(server).get(endpoint).set(header);
 
+      expect(find).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
   });
 
   describe("GET /:item", () => {
     it("Should return 404_NOT_FOUND if no item found", async () => {
-      jest.spyOn(item, "find").mockResolvedValue(null);
+      jest.spyOn(items, "find").mockResolvedValue(null);
 
-      const res = await request(server).get("/api/item/ItemId").set(header);
+      const res = await request(server).get(`${endpoint}/ItemId`).set(header);
 
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 200_OK item found", async () => {
-      jest.spyOn(item, "find").mockResolvedValue(mockItemResolveValue);
-
-      const res = await request(server).get(`/api/item/${item.id}`).set(header);
-
-      expect(res.status).toBe(status.OK);
-    });
-  });
-
-  describe("GET /:item", () => {
-    it("Should return 404_NOT_FOUND if no item found", async () => {
-      jest.spyOn(item, "find").mockResolvedValue(null);
+      jest.spyOn(items, "find").mockResolvedValue(mockItemResolveValue);
 
       const res = await request(server)
-        .get("/api/item/invalid_item_id")
+        .get(`${endpoint}/${items.id}`)
+        .set(header);
+
+      expect(res.status).toBe(status.OK);
+    });
+  });
+
+  describe("GET /:item", () => {
+    it("Should return 404_NOT_FOUND if no item found", async () => {
+      jest.spyOn(items, "find").mockResolvedValue(null);
+
+      const res = await request(server)
+        .get(`${endpoint}/invalid_item_id`)
         .set(header);
 
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 200_OK item found", async () => {
-      jest.spyOn(item, "find").mockResolvedValue(mockItemResolveValue);
+      const find = jest.spyOn(items, "find").mockResolvedValue(true);
 
-      const res = await request(server).get(`/api/item/${item.id}`).set(header);
+      const res = await request(server)
+        .get(`${endpoint}/${items.id}`)
+        .set(header);
 
+      expect(find).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
   });
 
   describe("PATCH /:item", () => {
     it("Should return 404_NOT_FOUND if item not found", async () => {
-      jest.spyOn(item, "find").mockResolvedValue(null);
+      jest.spyOn(items, "find").mockResolvedValue(null);
 
       const res = await request(server)
-        .patch("/api/item/invalid_item_id")
+        .patch(`${endpoint}/invalid_item_id`)
         .set(header);
 
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 200_OK if item updated", async () => {
-      jest.spyOn(item, "find").mockResolvedValue(mockItemResolveValue);
-      jest.spyOn(item, "save").mockResolvedValue(mockItemResolveValue);
+      jest.spyOn(items, "find").mockResolvedValue(mockItemResolveValue);
+      jest.spyOn(items, "save").mockResolvedValue(mockItemResolveValue);
 
       const res = await request(server)
-        .patch(`/api/item/${item.id}`)
+        .patch(`${endpoint}/${items.id}`)
         .set(header)
         .send({ name: faker.commerce.productName() });
 
@@ -218,23 +228,29 @@ describe("Item route", () => {
 
   describe("DELETE /:item", () => {
     it("Should return 404_NOT_FOUND if item not found", async () => {
-      jest.spyOn(item, "find").mockResolvedValue(null);
+      jest.spyOn(items, "find").mockResolvedValue(null);
 
       const res = await request(server)
-        .delete("/api/item/invalid_item_id")
+        .delete(`${endpoint}/invalid_item_id`)
         .set(header);
 
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 204_NO_CONTENT if item deleted", async () => {
-      jest.spyOn(item, "find").mockResolvedValue(mockItemResolveValue);
-      jest.spyOn(item, "delete").mockResolvedValue(mockItemResolveValue);
+      const find = jest
+        .spyOn(items, "find")
+        .mockResolvedValue(mockItemResolveValue);
+      const del = jest
+        .spyOn(items, "delete")
+        .mockResolvedValue(mockItemResolveValue);
 
       const res = await request(server)
-        .delete(`/api/item/${item.id}`)
+        .delete(`${endpoint}/${items.id}`)
         .set(header);
 
+      expect(find).toHaveBeenCalled();
+      expect(del).toHaveBeenCalled();
       expect(res.status).toBe(status.NO_CONTENT);
     });
   });
