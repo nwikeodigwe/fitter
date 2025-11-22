@@ -7,6 +7,7 @@ class Image {
     this.selectedFields = {
       id: true,
       url: true,
+      createdAt: true
     };
   }
 

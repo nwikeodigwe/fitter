@@ -1,6 +1,6 @@
 const express = require("express");
-const { brand } = require("../utils/Brand");
-const { user } = require("../utils/User");
+const { brands } = require("../utils/Brand");
+const { users } = require("../utils/User");
 const { status } = require("http-status");
 const auth = require("../middleware/auth");
 const router = express.Router();
@@ -12,12 +12,12 @@ router.post("/", auth, async (req, res) => {
       .json({ message: status[status.BAD_REQUEST], data: {} });
 
   // const brand = new Brand();
-  brand.name = req.body.name
+  brands.name = req.body.name
     .trim()
     .toLowerCase()
     .replace(/[^a-zA-Z0-9]/g, " ");
 
-  brand.owner = req.body.owner ? req.body.owner : req.user.id;
+  brands.owner = req.body.owner ? req.body.owner : req.user.id;
 
   if (req.body.tags && !Array.isArray(req.body.tags))
     return res
@@ -25,67 +25,99 @@ router.post("/", auth, async (req, res) => {
       .json({ message: status[status.BAD_REQUEST], data: {} });
 
   if (req.body.tags && req.body.tags.length > 0)
-    brand.tags = req.body.tags.map((tag) =>
+    brands.tags = req.body.tags.map((tag) =>
       tag
         .trim()
         .toLowerCase()
         .replace(/[^a-zA-Z0-9]/g, " ")
     );
 
-  brand.logo = req.body.logo ? req.body.logo : undefined;
+  brands.logo = req.body.logo ? req.body.logo : undefined;
 
-  const isBrand = await brand.find();
+  const isBrand = await brands.find();
 
   if (isBrand)
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
-  const isUser = await user.find({
-    id: brand.owner,
+  const isUser = await users.find({
+    id: brands.owner,
   });
 
-  if (!isUser) brand.owner = req.user.id;
+  if (!isUser) brands.owner = req.user.id;
 
-  brand.description = req.body.description;
+  brands.description = req.body.description;
 
-  const response = await brand.save();
+  const response = await brands.save();
 
   return res
     .status(status.CREATED)
     .json({ message: status[status.CREATED], response });
 });
 
-router.get("/count", async (req, res) => {
-  const count = await brand.count();
-  res.status(status.OK).json({ message: status[status.OK], count });
-});
-
 router.get("/", async (req, res) => {
-  const brands = await brand.findMany();
+  const sort = req.query.sort;
+  const gender = req.query.gender;
+  const releaseYear = req.query.releaseYear;
+  const tag = req.query.tag;
+  const limit = Number(req.query.limit) || undefined;
+  const offset = Number(req.query.offset) || undefined;
+  const popular = { favoriteBy: { _count: "desc" } };
+  const newest = { releaseYear: "desc" };
+  const latest = { createdAt: "desc" };
 
-  if (!brands.length)
+  const order =
+    sort === "newest" ? newest : sort === "latest" ? latest : popular;
+
+  const filter = {
+    AND: [
+      gender && {
+        gender: gender.toUpperCase(),
+      },
+      releaseYear && {
+        releaseYear: Number(releaseYear),
+      },
+      tag && {
+        tags: {
+          some: {
+            name: {
+              contains: tag,
+              lte: "insensitive",
+            },
+          },
+        },
+      },
+    ].filter(Boolean),
+  };
+
+  const data = await brands.findMany(filter, limit, offset, order);
+
+  if (!data.length)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], error: true });
+      .json({ message: status[status.NOT_FOUND], brands: [] });
 
-  return res.status(status.OK).json({ message: status[status.OK], brands });
+  const count = await brands.count(filter);
+  return res
+    .status(status.OK)
+    .json({ message: status[status.OK], brands: data, count });
 });
 
 router.get("/tags", async (req, res) => {
-  const tags = await brand.getTags();
+  const tags = await brands.getTags();
 
   if (!tags.length)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], error: true });
+      .json({ message: status[status.NOT_FOUND], brands: [] });
 
   return res.status(status.OK).json({ message: status[status.OK], tags });
 });
 
 router.get("/popular", async (req, res) => {
   // const brand = new Brand();
-  const brands = await brand.findMany();
+  const brands = await brands.findMany();
 
   return res
     .status(status.OK)
@@ -93,30 +125,32 @@ router.get("/popular", async (req, res) => {
 });
 
 router.get("/:brand", async (req, res) => {
-  brand.id = req.params.brand;
-  const response = await brand.find();
+  brands.id = req.params.brand;
+  const response = await brands.find();
 
   if (!response)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  return res.status(status.OK).json({ message: status[status.OK], brand });
+  return res
+    .status(status.OK)
+    .json({ message: status[status.OK], brand: response });
 });
 
 router.patch("/:brand", auth, async (req, res) => {
   // const brand = new Brand();
-  brand.id = req.params.brand;
-  const isBrand = await brand.find();
+  brands.id = req.params.brand;
+  const isBrand = await brands.find();
 
   if (!isBrand)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
 
-  brand.owner = req.user.id;
+  brands.owner = req.user.id;
 
-  brand.name = req.body.name
+  brands.name = req.body.name
     ? req.body.name
         .trim()
         .toLowerCase()
@@ -128,7 +162,7 @@ router.patch("/:brand", auth, async (req, res) => {
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
-  brand.tags = req.body.tags
+  brands.tags = req.body.tags
     ? req.body.tags.map((tag) =>
         tag
           .trim()
@@ -137,22 +171,22 @@ router.patch("/:brand", auth, async (req, res) => {
       )
     : null;
 
-  const response = await brand.save();
+  const response = await brands.save();
 
   return res.status(status.OK).json({ message: status[status.OK], response });
 });
 
 router.delete("/:brand", auth, async (req, res) => {
   // const brand = new Brand();
-  brand.id = req.params.brand;
-  const isBrand = await brand.find();
+  brands.id = req.params.brand;
+  const data = await brands.find();
 
-  if (!isBrand)
+  if (!data)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
 
-  if (isBrand.owner.id === req.user.id) await brand.delete();
+  if (data.owner.id === req.user.id) await brands.delete();
 
   return res.status(status.NO_CONTENT).end();
 });

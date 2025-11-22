@@ -1,21 +1,21 @@
 const express = require("express");
-const { brand } = require("../utils/Brand");
-const { comment } = require("../utils/Comment");
-const { user } = require("../utils/User");
-const { style } = require("../utils/Style");
-const { collection } = require("../utils/Collection");
-const { item } = require("../utils/Item");
+const { brands } = require("../utils/Brand");
+const { comments } = require("../utils/Comment");
+const { users } = require("../utils/User");
+const { styles } = require("../utils/Style");
+const { collections } = require("../utils/Collection");
+const { items} = require("../utils/Item");
 // const { logger } = require("../utils/Logger");
 const { status } = require("http-status");
-const transform = require("../functions/transform");
-const auth = require("../middleware/auth");
+// const transform = require("../functions/transform");
+// const auth = require("../middleware/auth");
 const router = express.Router();
 
-const models = { brand, item, collection, style, user, comment };
+const models = { brands, items, collections, styles, users, comments };
 
 router.put("/upvote/:type/:type_id", async (req, res) => {
   const type = req.params.type;
-  const valid = ["brand", "item", "collection", "style", "comment"];
+  const valid = ["brands", "items", "collections", "styles", "comments"];
   const Model = models[req.params.type];
 
   if (!valid.includes(type))
@@ -39,7 +39,7 @@ router.put("/upvote/:type/:type_id", async (req, res) => {
 
 router.put("/downvote/:type/:type_id", async (req, res) => {
   const type = req.params.type;
-  const valid = ["brand", "item", "collection", "style", "comment"];
+  const valid = ["brands", "items", "collections", "styles", "comments"];
   const Model = models[req.params.type];
 
   if (!valid.includes(type))
@@ -65,7 +65,7 @@ router.put("/downvote/:type/:type_id", async (req, res) => {
 
 router.delete("/unvote/:type/:type_id", async (req, res) => {
   const type = req.params.type;
-  const valid = ["brand", "item", "collection", "style", "comment"];
+  const valid = ["brands", "items", "collections", "styles", "comments"];
   const Model = models[req.params.type];
 
   if (!valid.includes(type))
@@ -95,7 +95,7 @@ router.delete("/unvote/:type/:type_id", async (req, res) => {
 
 router.post("/subscribe/:type/:type_id", async (req, res) => {
   const type = req.params.type;
-  const valid = ["brand", "user"];
+  const valid = ["brands", "users"];
   const Model = models[req.params.type];
 
   if (!valid.includes(type))
@@ -127,7 +127,7 @@ router.post("/subscribe/:type/:type_id", async (req, res) => {
 
 router.delete("/unsubscribe/:type/:type_id", async (req, res) => {
   const type = req.params.type;
-  const valid = ["brand", "user"];
+  const valid = ["brands", "users"];
   const Model = models[req.params.type];
 
   if (!valid.includes(type))
@@ -157,7 +157,7 @@ router.delete("/unsubscribe/:type/:type_id", async (req, res) => {
 
 router.post("/favorite/:type/:type_id", async (req, res) => {
   const type = req.params.type;
-  const valid = ["brand", "item", "style", "collection"];
+  const valid = ["brands", "items", "styles", "collections"];
   const Model = models[req.params.type];
 
   if (!valid.includes(type))
@@ -173,16 +173,17 @@ router.post("/favorite/:type/:type_id", async (req, res) => {
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
 
-  const response = await Model.favorite(req.user.id);
+
+   await Model.favorite(req.user.id);
 
   return res
     .status(status.CREATED)
-    .json({ message: status[status.CREATED], response });
+    .json({ message: status[status.CREATED], favorite: true });
 });
 
 router.delete("/unfavorite/:type/:type_id", async (req, res) => {
   const type = req.params.type;
-  const valid = ["brand", "item", "style", "collection"];
+  const valid = ["brands", "items", "styles", "collections"];
   const Model = models[req.params.type];
 
   if (!valid.includes(type))

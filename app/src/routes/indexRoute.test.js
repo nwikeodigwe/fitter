@@ -1,11 +1,11 @@
 const jwt = require("jsonwebtoken");
 const { app } = require("../app");
-const { user } = require("../utils/User");
-const { brand } = require("../utils/Brand");
-const { comment } = require("../utils/Comment");
-const { collection } = require("../utils/Collection");
-const { style } = require("../utils/Style");
-const { item } = require("../utils/Item");
+const { users } = require("../utils/User");
+const { brands } = require("../utils/Brand");
+const { comments } = require("../utils/Comment");
+const { collections } = require("../utils/Collection");
+const { styles } = require("../utils/Style");
+const { items } = require("../utils/Item");
 const { status } = require("http-status");
 const { faker } = require("@faker-js/faker");
 
@@ -109,11 +109,11 @@ describe("Action route", () => {
       token: refresh,
     };
 
-    jest.spyOn(user, "login").mockResolvedValue(mockUserLoginResolveToken);
+    jest.spyOn(users, "login").mockResolvedValue(mockUserLoginResolveToken);
 
-    user.email = userData.email;
-    user.password = userData.password;
-    login = await user.login();
+    users.email = userData.email;
+    users.password = userData.password;
+    login = await users.login();
 
     header = { Authorization: `Bearer ${token}` };
 
@@ -123,7 +123,7 @@ describe("Action route", () => {
       email: userData.email,
     });
 
-    models = { brand, style, user, item, collection, comment };
+    models = { brands, styles, users, items, collections, comments };
   });
 
   afterAll(() => {
@@ -145,7 +145,7 @@ describe("Action route", () => {
     });
 
     it("should return 404_NOT_FOUND if id does not exist", async () => {
-      params = ["brand", "style", "collection", "item", "comment"];
+      params = ["brands", "styles", "collections", "items", "comments"];
       index = Math.floor(Math.random() * params.length);
       model = models[params[index]];
 
@@ -263,7 +263,7 @@ describe("Action route", () => {
     });
 
     it("should return 404_NOT_FOUND if id does not exist", async () => {
-      params = ["brand", "user"];
+      params = ["brands", "users"];
       index = Math.floor(Math.random() * params.length);
 
       model = models[params[index]];
@@ -362,29 +362,34 @@ describe("Action route", () => {
     });
 
     it("should return 404_NOT_FOUND if id does not exist", async () => {
-      params = ["brand", "style", "item", "collection"];
+      params = ["brands", "styles", "items", "collections"];
       index = Math.floor(Math.random() * params.length);
 
       model = models[params[index]];
 
-      jest.spyOn(model, "find").mockResolvedValue(null);
+      const find = jest.spyOn(model, "find").mockResolvedValue(null);
 
       const res = await request(server)
         .post(`/api/favorite/${params[index]}/invalid_model_id`)
         .set(header);
 
+      expect(find).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("should return 201_CREATED if subscribe/item unvoted", async () => {
-      jest.spyOn(model, "find").mockResolvedValue(mockBrandResolveValue);
+      const find = jest
+        .spyOn(model, "find")
+        .mockResolvedValue(mockBrandResolveValue);
 
-      jest.spyOn(model, "favorite").mockResolvedValue(true);
+      const favorite = jest.spyOn(model, "favorite").mockResolvedValue(true);
 
       const res = await request(server)
         .post(`/api/favorite/${params[index]}/${model_id[index]}`)
         .set(header);
 
+      expect(find).toHaveBeenCalled();
+      expect(favorite).toHaveBeenCalled();
       expect(res.status).toBe(status.CREATED);
     });
   });
@@ -399,37 +404,47 @@ describe("Action route", () => {
     });
 
     it("should return 404_NOT_FOUND if id does not exist", async () => {
-      jest.spyOn(model, "find").mockResolvedValue(null);
+      const find = jest.spyOn(model, "find").mockResolvedValue(null);
 
       const res = await request(server)
         .delete(`/api/unfavorite/${params[index]}/invalid_model_id`)
         .set(header);
 
+      expect(find).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("should return 404_NOT_FOUND if not favorited", async () => {
-      jest.spyOn(model, "find").mockResolvedValue({ id: "valid_model_id" });
-      jest.spyOn(model, "isFavorite").mockResolvedValue(false);
+      const find = jest
+        .spyOn(model, "find")
+        .mockResolvedValue({ id: "valid_model_id" });
+      const favorite = jest.spyOn(model, "isFavorite").mockResolvedValue(false);
 
       const res = await request(server)
         .delete(`/api/unfavorite/${params[index]}/${model_id[index]}`)
         .set(header);
 
+      expect(find).toHaveBeenCalled();
+      expect(favorite).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("should return 204_NO_CONTENT if subscribe/item unfavorited", async () => {
-      jest.spyOn(model, "find").mockResolvedValue(mockBrandResolveValue);
-
-      jest.spyOn(model, "isFavorite").mockResolvedValue(true);
-
-      jest.spyOn(model, "unfavorite").mockResolvedValue(true);
+      const find = jest
+        .spyOn(model, "find")
+        .mockResolvedValue(mockBrandResolveValue);
+      const favorite = jest.spyOn(model, "isFavorite").mockResolvedValue(true);
+      const unfavorite = jest
+        .spyOn(model, "unfavorite")
+        .mockResolvedValue(true);
 
       const res = await request(server)
         .delete(`/api/unfavorite/${params[index]}/${model_id[index]}`)
         .set(header);
 
+      expect(find).toHaveBeenCalled();
+      expect(favorite).toHaveBeenCalled();
+      expect(unfavorite).toHaveBeenCalled();
       expect(res.status).toBe(status.NO_CONTENT);
     });
   });

@@ -1,25 +1,14 @@
-const { comment } = require("./Comment");
-const { brand } = require("./Brand");
-const { user } = require("./User");
+const { comments } = require("./Comment");
+const prisma = require("../functions/prisma");
+
 const { faker } = require("@faker-js/faker");
 
 describe("Comment", () => {
   let userData;
-  let mockUserReturnValue;
   let commentData;
   let mockCommentReturnValue;
 
   beforeAll(async () => {
-    // let user = new User();
-    // user.email = faker.internet.email();
-    // user.password = faker.internet.password();
-    // await user.save();
-    // brand = new Brand();
-    // brand.name = faker.internet.username();
-    // brand.description = faker.lorem.sentence();
-    // await brand.save();
-    // comment = new Comment();
-
     userData = {
       id: faker.string.uuid(),
       name: faker.internet.username(),
@@ -56,85 +45,101 @@ describe("Comment", () => {
 
   describe("create", () => {
     it("Should call create method when creating a comment", async () => {
-      jest.spyOn(comment, "create").mockResolvedValue();
-      await comment.create();
+      jest.spyOn(comments, "create").mockResolvedValue();
+      await comments.create();
 
-      expect(comment.create).toHaveBeenCalled();
+      expect(comments.create).toHaveBeenCalled();
     });
 
     it("Should return the created comment object", async () => {
-      jest.spyOn(comment, "create").mockResolvedValue(mockCommentReturnValue);
+      jest
+        .spyOn(prisma.comment, "create")
+        .mockResolvedValue(mockCommentReturnValue);
 
-      comment.content = commentData.content;
-      comment.description = commentData.description;
-      comment.entity = commentData.entity;
-      comment.entityId = commentData.entityId;
-      comment.tags = commentData.tags;
-      comment.userId = commentData.userId;
-      const result = await comment.create();
+      comments.content = commentData.content;
+      comments.description = commentData.description;
+      comments.entity = commentData.entity;
+      comments.entityId = commentData.entityId;
+      comments.tags = commentData.tags;
+      comments.userId = commentData.userId;
+      const result = await comments.create();
 
+      expect(prisma.comment.create).toHaveBeenCalled();
       expect(result).toMatchObject(mockCommentReturnValue);
     });
   });
 
   describe("save", () => {
-    it("Should call save method when creating or updating a comment", async () => {
-      jest.spyOn(comment, "save").mockResolvedValue();
-      await comment.save();
+    it("Should call create method if comment exists", async () => {
+      jest.spyOn(prisma.comment, "findFirst").mockResolvedValue(true);
+      jest.spyOn(prisma.comment, "update").mockResolvedValue();
 
-      expect(comment.save).toHaveBeenCalled();
+      comments.id = "comment_id";
+      await comments.save();
+
+      expect(prisma.comment.findFirst).toHaveBeenCalled();
+      expect(prisma.comment.update).toHaveBeenCalled();
     });
 
-    it("Should call update method if comment exist", async () => {
-      const newcomment = faker.lorem.sentence();
-      comment.content = newcomment;
+    it("Should call create method if comment does not exist", async () => {
+      jest.spyOn(prisma.comment, "findFirst").mockResolvedValue();
 
       jest
-        .spyOn(comment, "save")
-        .mockResolvedValue({ ...mockCommentReturnValue, content: newcomment });
+        .spyOn(prisma.comment, "create")
+        .mockResolvedValue(mockCommentReturnValue);
 
-      const result = await comment.save();
+      comments.id = undefined;
+      const result = await comments.save();
 
-      expect(result).toMatchObject({
-        ...mockCommentReturnValue,
-        content: newcomment,
-      });
+      expect(prisma.comment.findFirst).toHaveBeenCalled();
+      expect(prisma.comment.create).toHaveBeenCalled();
+      expect(result).toMatchObject(mockCommentReturnValue);
     });
 
-    it("Should call create method if comment exist", async () => {
-      jest.spyOn(comment, "delete").mockResolvedValue(mockCommentReturnValue);
+    it("Should call create method if comment does not exist", async () => {
+      jest
+        .spyOn(prisma.comment, "create")
+        .mockResolvedValue(mockCommentReturnValue);
+      jest.spyOn(prisma.comment, "findFirst").mockResolvedValue(null);
 
-      await comment.delete();
+      comments.id = undefined;
+      comments.content = commentData.content;
+      const result = await comments.save();
 
-      jest.spyOn(comment, "save").mockResolvedValue(null);
-
-      comment.id = undefined;
-      comment.content = commentData.content;
-      const result = await comment.save();
-
-      expect(comment.save).toHaveBeenCalled();
-      expect(result).toBeNull();
+      expect(prisma.comment.findFirst).toHaveBeenCalled();
+      expect(prisma.comment.create).toHaveBeenCalled();
+      expect(result).toBeTruthy();
     });
   });
 
   describe("update", () => {
     it("Should call update method when updating a comment", async () => {
-      jest.spyOn(comment, "save").mockResolvedValue(mockCommentReturnValue);
-      await comment.save();
+      jest.spyOn(prisma.comment, "findFirst").mockResolvedValue(true);
+      jest
+        .spyOn(prisma.comment, "update")
+        .mockResolvedValue(mockCommentReturnValue);
 
-      expect(comment.save).toHaveBeenCalled();
+      comments.id = "comment_id";
+      const result = await comments.save();
+
+      expect(prisma.comment.findFirst).toHaveBeenCalled();
+      expect(prisma.comment.update).toHaveBeenCalled();
+      expect(result).toBeTruthy();
     });
 
     it("Should return the updated comment object", async () => {
+      jest.spyOn(prisma.comment, "findFirst").mockResolvedValue(true);
       let newcomment = faker.lorem.sentence();
-      comment.content = newcomment;
+      comments.content = newcomment;
 
       jest
-        .spyOn(comment, "update")
+        .spyOn(prisma.comment, "update")
         .mockResolvedValue({ ...mockCommentReturnValue, content: newcomment });
 
-      const result = await comment.update();
+      const result = await comments.update();
 
+      expect(prisma.comment.findFirst).toHaveBeenCalled();
+      expect(prisma.comment.update).toHaveBeenCalled();
       expect(result).toMatchObject({
         ...mockCommentReturnValue,
         content: newcomment,
@@ -144,28 +149,23 @@ describe("Comment", () => {
 
   describe("findMany", () => {
     it("Should return an empty array if no comment is found", async () => {
-      jest.spyOn(comment, "deleteMany").mockResolvedValue();
+      jest.spyOn(prisma.comment, "findMany").mockResolvedValue([]);
 
-      await comment.deleteMany();
+      const result = await comments.findMany();
 
-      jest.spyOn(comment, "findMany").mockResolvedValue([]);
-
-      const result = await comment.findMany();
-
+      expect(prisma.comment.findMany).toHaveBeenCalled();
       expect(result).toBeInstanceOf(Array);
       expect(result).toHaveLength(0);
     });
 
     it("Should return an array of comments if found", async () => {
-      jest.spyOn(comment, "save").mockResolvedValue(mockCommentReturnValue);
-
       jest
-        .spyOn(comment, "findMany")
+        .spyOn(prisma.comment, "findMany")
         .mockResolvedValue([mockCommentReturnValue]);
 
-      await comment.save();
-      result = await comment.findMany();
+      result = await comments.findMany();
 
+      expect(prisma.comment.findMany).toHaveBeenCalled();
       expect(result).toBeInstanceOf(Array);
       expect(result).toHaveLength(1);
     });
@@ -173,20 +173,24 @@ describe("Comment", () => {
 
   describe("delete", () => {
     it("Should return true if comment deleted", async () => {
-      jest.spyOn(comment, "delete").mockResolvedValue(mockCommentReturnValue);
+      jest.spyOn(prisma.comment, "findFirst").mockResolvedValue(true);
+      jest.spyOn(prisma.comment, "delete").mockResolvedValue(true);
 
-      const result = await comment.delete();
+      const result = await comments.delete();
 
+      expect(prisma.comment.findFirst).toHaveBeenCalled();
+      expect(prisma.comment.delete).toHaveBeenCalled();
       expect(result).toBeTruthy();
     });
 
     it("Should return false if invalid comment provided", async () => {
-      jest.spyOn(comment, "delete").mockResolvedValue(null);
+      jest.spyOn(prisma.comment, "findFirst").mockResolvedValue(null);
 
-      comment.id = "invalid_comment_id";
-      const result = await comment.delete();
+      comments.id = "invalid_comment_id";
+      const result = await comments.delete();
 
-      expect(result).toBeNull();
+      expect(prisma.comment.findFirst).toHaveBeenCalled();
+      expect(result).toBeFalsy();
     });
   });
 });

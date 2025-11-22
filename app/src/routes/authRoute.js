@@ -1,7 +1,7 @@
 const express = require("express");
-const { user } = require("../utils/User");
+const { users } = require("../utils/User");
 const { status } = require("http-status");
-const {newsletter} = require("../utils/Newsletter");
+const { newsletter } = require("../utils/Newsletter");
 const router = express.Router();
 
 router.post("/signup", async (req, res) => {
@@ -12,10 +12,10 @@ router.post("/signup", async (req, res) => {
     });
 
   // const user = new User();
-  user.email = req.body.email;
-  user.password = req.body.password;
+  users.email = req.body.email;
+  users.password = req.body.password;
 
-  const isUser = await user.find();
+  const isUser = await users.find();
 
   if (isUser)
     return res.status(status.BAD_REQUEST).json({
@@ -23,10 +23,10 @@ router.post("/signup", async (req, res) => {
       error: true,
     });
 
-  if (req.body.subscribe) newsletter.save(user.email);
+  if (req.body.subscribe) newsletter.save(users.email);
 
-  await user.save();
-  await user.mail("welcome");
+  await users.save();
+  await users.mail("welcome");
 
   return res
     .status(status.CREATED)
@@ -41,19 +41,17 @@ router.post("/signin", async (req, res) => {
       error: true,
     });
 
-  // const user = new User();
-  user.email = req.body.email;
-  user.password = req.body.password;
+  users.email = req.body.email;
+  const find = await users.find();
 
-  const isUser = await user.find();
-
-  if (!isUser)
+  if (!find)
     return res.status(status.NOT_FOUND).json({
       message: status[status.NOT_FOUND],
-      error: true,
+      login: {},
     });
 
-  const isPassword = await user.passwordMatch();
+  users.password = req.body.password;
+  const isPassword = await users.passwordMatch();
 
   if (!isPassword)
     return res.status(status.BAD_REQUEST).json({
@@ -61,7 +59,7 @@ router.post("/signin", async (req, res) => {
       error: true,
     });
 
-  const login = await user.login();
+  const login = await users.login();
 
   return res.status(status.OK).json({ message: status[status.OK], login });
 });
@@ -73,9 +71,8 @@ router.post("/reset", async (req, res) => {
       error: true,
     });
 
-  // const user = new User();
-  user.email = req.body.email;
-  const isUser = await user.find();
+  users.email = req.body.email;
+  const isUser = await users.find();
 
   if (!isUser)
     return res.status(status.NOT_FOUND).json({
@@ -83,7 +80,7 @@ router.post("/reset", async (req, res) => {
       error: true,
     });
 
-  await user.createResetToken();
+  await users.createResetToken();
 
   return res.status(status.OK).end();
 });
@@ -95,10 +92,9 @@ router.post("/reset/:token", async (req, res) => {
       error: true,
     });
 
-  // const user = new User();
-  user.resetToken = req.params.token;
+  users.resetToken = req.params.token;
 
-  const isValidResetToken = await user.isValidResetToken();
+  const isValidResetToken = await users.isValidResetToken();
 
   if (!isValidResetToken)
     return res.status(status.BAD_REQUEST).json({
@@ -106,12 +102,12 @@ router.post("/reset/:token", async (req, res) => {
       error: true,
     });
 
-  user.password = req.body.password;
-  user.id = isValidResetToken.user.id;
+  users.password = req.body.password;
+  users.id = isValidResetToken.user.id;
 
-  await user.save();
+  await users.save();
 
-  login = await user.login();
+  login = await users.login();
 
   return res
     .status(status.OK)

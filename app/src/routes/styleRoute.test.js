@@ -1,12 +1,11 @@
 const { app } = require("../app");
-const { style } = require("../utils/Style");
-const { collection } = require("../utils/Collection");
-const { user } = require("../utils/User");
+const { styles } = require("../utils/Style");
+const { collections } = require("../utils/Collection");
+const { users } = require("../utils/User");
 const { faker } = require("@faker-js/faker");
 const { status } = require("http-status");
 const jwt = require("jsonwebtoken");
 const request = require("supertest");
-const method = require("../const/http-methods");
 
 let server;
 
@@ -14,17 +13,17 @@ describe("Style Route", () => {
   let header;
   let userData;
   let mockUserLoginResolveToken;
-  let itemData;
   let mockStyleResolveValue;
-  let mockResponse;
+  let endpoint;
 
   beforeAll(async () => {
+    endpoint = "/api/styles";
     server = app.listen(0);
 
     userData = {
       id: faker.string.uuid(),
       name: faker.internet.username(),
-      email: faker.internet.username(),
+      email: faker.internet.email(),
       password: faker.internet.password(),
     };
 
@@ -48,11 +47,11 @@ describe("Style Route", () => {
       token: refresh,
     };
 
-    jest.spyOn(user, "login").mockResolvedValue(mockUserLoginResolveToken);
+    jest.spyOn(users, "login").mockResolvedValue(mockUserLoginResolveToken);
 
-    user.email = userData.email;
-    user.password = userData.password;
-    login = await user.login();
+    users.email = userData.email;
+    users.password = userData.password;
+    login = await users.login();
 
     header = { Authorization: `Bearer ${token}` };
 
@@ -91,57 +90,58 @@ describe("Style Route", () => {
 
   describe("POST /", () => {
     it("Should return 400_BAD_REQUEST if name and description not provided", async () => {
-      const res = await request(server).post("/api/style").set(header);
+      const res = await request(server).post(endpoint).set(header);
 
       expect(res.status).toBe(status.BAD_REQUEST);
     });
 
     it("Should return 404_NOT_FOUND if collection not found", async () => {
-      jest.spyOn(collection, "find").mockResolvedValue(null);
+      jest.spyOn(collections, "find").mockResolvedValue(null);
 
       const res = await request(server)
-        .post("/api/style")
+        .post(endpoint)
         .set(header)
         .send({ ...styleData, collection: "invalid_id", id: undefined });
 
+      expect(collections.find).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 400_BAD_REQUEST if tag is not an array", async () => {
-      const res = await request(server)
-        .post("/api/style")
-        .set(header)
-        .send(style);
+      const res = await request(server).post(endpoint).set(header).send(styles);
 
       expect(res.status).toBe(status.BAD_REQUEST);
     });
 
     it("Should return 201_CREATED if style created", async () => {
-      jest.spyOn(style, "save").mockResolvedValue(mockStyleResolveValue);
+      jest.spyOn(styles, "save").mockResolvedValue(mockStyleResolveValue);
       jest
-        .spyOn(collection, "find")
+        .spyOn(collections, "find")
         .mockResolvedValue({ id: faker.string.uuid() });
 
       const res = await request(server)
-        .post("/api/style")
+        .post(endpoint)
         .set(header)
         .send({ ...styleData, id: undefined });
 
+      expect(styles.save).toHaveBeenCalled();
+      expect(collections.find).toHaveBeenCalled();
       expect(res.status).toBe(status.CREATED);
     });
   });
 
   describe("GET /", () => {
     it("Should return 200_OK if style found", async () => {
-      jest.spyOn(style, "findMany").mockResolvedValue([mockStyleResolveValue]);
+      jest.spyOn(styles, "findMany").mockResolvedValue([mockStyleResolveValue]);
 
-      const res = await request(server).get(`/api/style`).set(header);
+      const res = await request(server).get(endpoint).set(header);
 
+      expect(styles.findMany).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
 
     it("Should return 404_NOT_FOUND if no style found", async () => {
-      const res = await request(server).get("/api/style").set(header);
+      const res = await request(server).get(endpoint).set(header);
 
       expect(res.status).toBe(status.NOT_FOUND);
     });
@@ -150,18 +150,19 @@ describe("Style Route", () => {
   describe("GET /:style", () => {
     it("Should return 404_NOT_FOUND if style not found", async () => {
       const res = await request(server)
-        .get("/api/style/invalid_style_id")
+        .get(`${endpoint}/invalid_style_id`)
         .set(header);
 
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 200_OK if style found", async () => {
-      jest.spyOn(style, "find").mockResolvedValue(mockStyleResolveValue);
+      jest.spyOn(styles, "find").mockResolvedValue(true);
       const res = await request(server)
-        .get(`/api/style/${style.id}`)
+        .get(`${endpoint}/${styles.id}`)
         .set(header);
 
+      expect(styles.find).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
   });
@@ -169,38 +170,42 @@ describe("Style Route", () => {
   describe("DELETE /:style", () => {
     it("Should return 404_NOT_FOUND if style not found", async () => {
       const res = await request(server)
-        .delete("/api/style/invalid_style_id")
+        .delete(`${endpoint}/invalid_style_id`)
         .set(header);
 
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 204_NO_CONTENT if style deleted", async () => {
-      jest.spyOn(style, "find").mockResolvedValue(mockStyleResolveValue);
-      jest.spyOn(style, "delete").mockResolvedValue(mockStyleResolveValue);
+      jest.spyOn(styles, "find").mockResolvedValue(true);
+      jest.spyOn(styles, "delete").mockResolvedValue(true);
 
       const res = await request(server)
-        .delete(`/api/style/${style.id}`)
+        .delete(`${endpoint}/${styles.id}`)
         .set(header);
 
+      expect(styles.find).toHaveBeenCalled();
+      expect(styles.delete).toHaveBeenCalled();
       expect(res.status).toBe(status.NO_CONTENT);
     });
   });
 
   describe("GET /me", () => {
     it("Should return 404_NOT_FOUND if style not found", async () => {
-      jest.spyOn(style, "findMany").mockResolvedValue([]);
+      jest.spyOn(styles, "findMany").mockResolvedValue([]);
 
-      const res = await request(server).get("/api/style/me").set(header);
+      const res = await request(server).get(`${endpoint}/me`).set(header);
 
+      expect(styles.findMany).toHaveBeenCalled();
       expect(res.status).toBe(status.NOT_FOUND);
     });
 
     it("Should return 200_OK if style found", async () => {
-      jest.spyOn(style, "findMany").mockResolvedValue([mockStyleResolveValue]);
+      jest.spyOn(styles, "findMany").mockResolvedValue(["1", "2"]);
 
-      const res = await request(server).get(`/api/style/me`).set(header);
+      const res = await request(server).get(`${endpoint}/me`).set(header);
 
+      expect(styles.findMany).toHaveBeenCalled();
       expect(res.status).toBe(status.OK);
     });
   });

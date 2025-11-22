@@ -1,8 +1,8 @@
 const express = require("express");
-const { item } = require("../utils/Item");
-const { style } = require("../utils/Style");
-const { collection } = require("../utils/Collection");
-const { brand } = require("../utils/Brand");
+const { items } = require("../utils/Item");
+const { styles } = require("../utils/Style");
+const { collections } = require("../utils/Collection");
+const { brands } = require("../utils/Brand");
 const { search } = require("../utils/Search");
 const { status } = require("http-status");
 const router = express.Router();
@@ -25,15 +25,15 @@ router.post("/", async (req, res) => {
     ],
   };
 
-  let items = await item.findMany(where, limit);
-  let styles = await style.findMany(where, limit);
-  let collections = await collection.findMany(where, limit);
-  let brands = await brand.findMany(where, limit);
+  let manyItems = await items.findMany(where, limit);
+  let manyStyles = await styles.findMany(where, limit);
+  let manyCollections = await collections.findMany(where, limit);
+  let manyBrands = await brands.findMany(where, limit);
 
-  result.items = items;
-  result.styles = styles;
-  result.collections = collections;
-  result.brands = brands;
+  result.items = manyItems;
+  result.styles = manyStyles;
+  result.collections = manyCollections;
+  result.brands = manyBrands;
 
   res.json({ message: status[status.OK], result });
 });
@@ -94,9 +94,9 @@ router.post("/item", async (req, res) => {
     ],
   };
 
-  let items = await item.findMany(where, limit);
+  let many = await items.findMany(where, limit);
 
-  res.json({ message: status[status.OK], items });
+  res.json({ message: status[status.OK], items: many });
 });
 
 router.post("/style", async (req, res) => {
@@ -116,9 +116,9 @@ router.post("/style", async (req, res) => {
     ],
   };
 
-  let styles = await style.findMany(where, limit);
+  let many = await styles.findMany(where, limit);
 
-  res.json({ message: status[status.OK], styles });
+  res.json({ message: status[status.OK], styles: many });
 });
 
 router.post("/collection", async (req, res) => {
@@ -139,9 +139,9 @@ router.post("/collection", async (req, res) => {
     ],
   };
 
-  let collections = await collection.findMany(where, limit);
+  let many = await collections.findMany(where, limit);
 
-  res.json({ message: status[status.OK], collections });
+  res.json({ message: status[status.OK], collections: many });
 });
 
 router.post("/brand", async (req, res) => {
@@ -162,7 +162,7 @@ router.post("/brand", async (req, res) => {
     ],
   };
 
-  let brands = await brand.findMany(where, limit);
+  let brands = await brands.findMany(where, limit);
 
   res.json({ message: status[status.OK], brands });
 });

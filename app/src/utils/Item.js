@@ -26,6 +26,9 @@ class Item {
       brand: { select: { id: true, name: true } },
       tags: true,
       creator: { select: { id: true } },
+      releaseYear: true,
+      createdAt: true,
+      _count: true,
     };
   }
 
@@ -52,153 +55,172 @@ class Item {
   }
 
   async create(item = {}) {
-    const name = item.name || this.name;
-    const description = item.description || this.description;
-    const slug = item.slug || this.slug || this.#createSlug(name);
-    const releaseYear = item.releaseYear || this.releaseYear;
-    const category = item.category || this.category;
-    const depthMap = item.depthMap || this.depthMap;
-    const tags = item.tags || this.tags;
-    const brand = item.brand || this.brand;
-    const images = item.images || this.images;
-    const creator = item.creator || this.creator;
+    try {
+      const name = item.name || this.name;
+      const description = item.description || this.description;
+      const slug = item.slug || this.slug || this.#createSlug(name);
+      const releaseYear = item.releaseYear || this.releaseYear;
+      const category = item.category || this.category;
+      const depthMap = item.depthMap || this.depthMap;
+      const tags = item.tags || this.tags;
+      const brand = item.brand || this.brand;
+      const images = item.images || this.images;
+      const creator = item.creator || this.creator;
 
-    item = await prisma.item.create({
-      data: {
-        name,
-        slug,
-        releaseYear,
-        category,
-        depthMap,
-        description,
-        ...(tags &&
-          tags.length > 0 && {
-            tags: {
-              connectOrCreate: tags.map((tag) => ({
-                where: { name: tag },
-                create: { name: tag },
-              })),
-            },
-          }),
-        ...(creator
-          ? {
-              creator: { connect: { id: creator } },
-            }
-          : {}),
-        ...(images && images.length > 0
-          ? {
-              images: {
-                connectOrCreate: images.map((imageUrl) => ({
-                  where: { url: imageUrl },
-                  create: { url: imageUrl },
-                })),
-              },
-            }
-          : {}),
-        brand: {
-          connectOrCreate: {
-            where: { name: brand },
-            create: { name: brand, slug: this.#createSlug(brand) },
-          },
-        },
-      },
-      select: this.selectedFields,
-    });
-
-    this.id = item.id;
-    return item;
-  }
-
-  update(item = {}) {
-    const id = item.id || this.id;
-    const name = item.name || this.name;
-    const slug = item.slug || this.slug || this.#createSlug(name);
-    const category = item.category || this.category;
-    const depthMap = item.depthMap || this.depthMap;
-    const realeaseYear = item.releaseYear || this.releaseYear;
-    const description = item.description || this.description;
-    const tags = item.tags || this.tags;
-    const brand = item.brand || this.brand;
-    const images = item.images || this.images;
-    const creator = item.creator || this.creator;
-
-    return prisma.item.update({
-      where: { id },
-      data: {
-        ...(name ? { name } : {}),
-        ...(slug ? { slug } : {}),
-        ...(category ? { category } : {}),
-        ...(depthMap ? { depthMap } : {}),
-        ...(realeaseYear ? { realeaseYear } : {}),
-        ...(description ? { description } : {}),
-        ...(tags && tags.length > 0
-          ? {
+      item = await prisma.item.create({
+        data: {
+          name,
+          slug,
+          releaseYear,
+          category,
+          depthMap,
+          description,
+          ...(tags &&
+            tags.length > 0 && {
               tags: {
                 connectOrCreate: tags.map((tag) => ({
                   where: { name: tag },
                   create: { name: tag },
                 })),
               },
-            }
-          : {}),
-        ...(creator
-          ? {
-              creator: { connect: { id: creator } },
-            }
-          : {}),
-        ...(images
-          ? {
-              images: {
-                connectOrCreate: images.map((image) => ({
-                  where: { url: image },
-                  create: { url: image },
-                })),
-              },
-            }
-          : {}),
-        ...(brand
-          ? {
-              brand: {
-                connectOrCreate: {
-                  where: { name: brand },
-                  create: { name: brand, slug: this.#createSlug(brand) },
+            }),
+          ...(creator
+            ? {
+                creator: { connect: { id: creator } },
+              }
+            : {}),
+          ...(images && images.length > 0
+            ? {
+                images: {
+                  connectOrCreate: images.map((imageUrl) => ({
+                    where: { url: imageUrl },
+                    create: { url: imageUrl },
+                  })),
                 },
-              },
-            }
-          : {}),
-      },
-      select: this.selectedFields,
-    });
+              }
+            : {}),
+          brand: {
+            connectOrCreate: {
+              where: { name: brand },
+              create: { name: brand, slug: this.#createSlug(brand) },
+            },
+          },
+        },
+        select: this.selectedFields,
+      });
+
+      this.id = item.id;
+      return item;
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
+  }
+
+  update(item = {}) {
+    try {
+      const id = item.id || this.id;
+      const name = item.name || this.name;
+      const slug = item.slug || this.slug || this.#createSlug(name);
+      const category = item.category || this.category;
+      const depthMap = item.depthMap || this.depthMap;
+      const realeaseYear = item.releaseYear || this.releaseYear;
+      const description = item.description || this.description;
+      const tags = item.tags || this.tags;
+      const brand = item.brand || this.brand;
+      const images = item.images || this.images;
+      const creator = item.creator || this.creator;
+
+      return prisma.item.update({
+        where: { id },
+        data: {
+          ...(name ? { name } : {}),
+          ...(slug ? { slug } : {}),
+          ...(category ? { category } : {}),
+          ...(depthMap ? { depthMap } : {}),
+          ...(realeaseYear ? { realeaseYear } : {}),
+          ...(description ? { description } : {}),
+          ...(tags && tags.length > 0
+            ? {
+                tags: {
+                  connectOrCreate: tags.map((tag) => ({
+                    where: { name: tag },
+                    create: { name: tag },
+                  })),
+                },
+              }
+            : {}),
+          ...(creator
+            ? {
+                creator: { connect: { id: creator } },
+              }
+            : {}),
+          ...(images
+            ? {
+                images: {
+                  connectOrCreate: images.map((image) => ({
+                    where: { url: image },
+                    create: { url: image },
+                  })),
+                },
+              }
+            : {}),
+          ...(brand
+            ? {
+                brand: {
+                  connectOrCreate: {
+                    where: { name: brand },
+                    create: { name: brand, slug: this.#createSlug(brand) },
+                  },
+                },
+              }
+            : {}),
+        },
+        select: this.selectedFields,
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   find(item = {}) {
-    logger.info("Finding item...");
-    const id = item.id || this.id;
-    const name = item.name || this.name;
-    const slug = item.slug || this.slug;
+    try {
+      const id = item.id || this.id;
+      const name = item.name || this.name;
+      const slug = item.slug || this.slug;
 
-    const filters = [id && { id }, name && { name }, slug && { slug }].filter(
-      Boolean
-    );
+      const filters = [id && { id }, name && { name }, slug && { slug }].filter(
+        Boolean
+      );
 
-    if (filters.length === 0) {
-      throw new Error("At least one of id, name, or email must be provided");
+      if (filters.length === 0) {
+        throw new Error("At least one of id, name, or email must be provided");
+      }
+
+      return prisma.item.findFirst({
+        where: {
+          OR: filters,
+        },
+        select: this.selectedFields,
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
     }
-
-    return prisma.item.findFirst({
-      where: {
-        OR: filters,
-      },
-      select: this.selectedFields,
-    });
   }
 
   findById(id = this.id) {
-    return prisma.item.findUnique({
-      where: {
-        id,
-      },
-    });
+    try {
+      return prisma.item.findUnique({
+        where: {
+          id,
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   async findBySlug(slug = this.slug) {
@@ -210,21 +232,32 @@ class Item {
       });
     } catch (err) {
       logger.error(err);
+      throw err;
     }
   }
 
-  findMany(filter = {}, limit = 10, offset = 0, order) {
-    return prisma.item.findMany({
-      where: filter,
-      select: this.selectedFields,
-      take: limit,
-      skip: offset,
-      orderBy: order,
-    });
+  findMany(filter = {}, limit = 20, offset = 0, order) {
+    try {
+      return prisma.item.findMany({
+        where: filter,
+        select: this.selectedFields,
+        take: limit,
+        skip: offset,
+        orderBy: order,
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
-  count(where = {}) {
-    return prisma.item.count({ where: { ...where } });
+  count(filter = {}) {
+    try {
+      return prisma.item.count({ where: filter });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   getTags(
@@ -233,147 +266,192 @@ class Item {
     offset = 0,
     orderBy = { items: { _count: "desc" } }
   ) {
-    return prisma.tag.findMany({
-      where,
-      select: {
-        name: true,
-        items: { select: { name: true }, distinct: ["name"], take: limit },
-      },
-      distinct: ["name"],
-      take: limit,
-      skip: offset,
-      orderBy,
-    });
+    try {
+      return prisma.tag.findMany({
+        where,
+        select: {
+          name: true,
+          items: { select: { name: true }, distinct: ["name"], take: limit },
+        },
+        distinct: ["name"],
+        take: limit,
+        skip: offset,
+        orderBy,
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   favorite(user) {
-    return prisma.favoriteItem.upsert({
-      where: {
-        userId_itemId: {
-          userId: user,
-          itemId: this.id,
-        },
-      },
-      create: {
-        user: {
-          connect: {
-            id: user,
+    try {
+      return prisma.favoriteItem.upsert({
+        where: {
+          userId_itemId: {
+            userId: user,
+            itemId: this.id,
           },
         },
-        item: {
-          connect: {
-            id: this.id,
+        create: {
+          user: {
+            connect: {
+              id: user,
+            },
+          },
+          item: {
+            connect: {
+              id: this.id,
+            },
           },
         },
-      },
-      update: {},
-      select: {
-        id: true,
-      },
-    });
+        update: {},
+        select: {
+          id: true,
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   isFavorite(user) {
-    return prisma.favoriteItem.findFirst({
-      where: {
-        userId: user,
-        itemId: this.id,
-      },
-      select: {
-        id: true,
-      },
-    });
-  }
-
-  async unfavorite(user) {
-    await prisma.favoriteItem.delete({
-      where: {
-        userId_itemId: {
+    try {
+      return !!prisma.favoriteItem.findFirst({
+        where: {
           userId: user,
           itemId: this.id,
         },
-      },
-    });
+        select: {
+          id: true,
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
+  }
+
+  unfavorite(user) {
+    try {
+      return prisma.favoriteItem.delete({
+        where: {
+          userId_itemId: {
+            userId: user,
+            itemId: this.id,
+          },
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   upvote(user) {
-    return prisma.itemVote.upsert({
-      where: {
-        userId_itemId: { itemId: this.id, userId: user },
-      },
-      update: {
-        vote: true,
-      },
-      create: {
-        user: {
-          connect: {
-            id: user,
-          },
+    try {
+      return prisma.itemVote.upsert({
+        where: {
+          userId_itemId: { itemId: this.id, userId: user },
         },
-        item: {
-          connect: {
-            id: this.id,
-          },
+        update: {
+          vote: true,
         },
-        vote: true,
-      },
-    });
+        create: {
+          user: {
+            connect: {
+              id: user,
+            },
+          },
+          item: {
+            connect: {
+              id: this.id,
+            },
+          },
+          vote: true,
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   isVoted(user) {
-    return prisma.itemVote.findFirst({
-      where: {
-        itemId: this.id,
-        userId: user,
-      },
-    });
+    try {
+      return !!prisma.itemVote.findFirst({
+        where: {
+          itemId: this.id,
+          userId: user,
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   downvote(user) {
-    return prisma.itemVote.upsert({
-      where: {
-        userId_itemId: { itemId: this.id, userId: user },
-      },
-      update: {
-        vote: false,
-      },
-      create: {
-        user: {
-          connect: {
-            id: user,
-          },
+    try {
+      return prisma.itemVote.upsert({
+        where: {
+          userId_itemId: { itemId: this.id, userId: user },
         },
-        item: {
-          connect: {
-            id: this.id,
-          },
+        update: {
+          vote: false,
         },
-        vote: false,
-      },
-    });
+        create: {
+          user: {
+            connect: {
+              id: user,
+            },
+          },
+          item: {
+            connect: {
+              id: this.id,
+            },
+          },
+          vote: false,
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   unvote(user) {
-    return prisma.itemVote.delete({
-      where: {
-        userId_itemId: { itemId: this.id, userId: user },
-      },
-    });
+    try {
+      return prisma.itemVote.delete({
+        where: {
+          userId_itemId: { itemId: this.id, userId: user },
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   async delete(item = {}) {
-    this.id = item.id || this.id;
+    try {
+      this.id = item.id || this.id;
 
-    item = await this.find();
-    if (item)
+      item = await this.find();
+
+      if (!item) return;
+
       return prisma.item.delete({
         where: {
           id: item.id,
         },
         select: { id: true },
       });
-
-    return null;
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   deleteMany() {
@@ -381,5 +459,5 @@ class Item {
   }
 }
 
-const item = new Item();
-module.exports = { item, Item };
+const items = new Item();
+module.exports = { items, Item };

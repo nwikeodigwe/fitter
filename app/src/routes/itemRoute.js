@@ -1,6 +1,6 @@
 const express = require("express");
-const { item } = require("../utils/Item");
-const { user } = require("../utils/User");
+const { items } = require("../utils/Item");
+const { users } = require("../utils/User");
 const logger = require("../utils/Logger");
 const auth = require("../middleware/auth");
 const { status } = require("http-status");
@@ -30,23 +30,23 @@ router.post("/", auth, async (req, res) => {
 
   // const item = new Item();
   if (req.body.creator) {
-    user.id = req.body.creator;
-    const creator = await user.find({ id: req.body.creator });
+    users.id = req.body.creator;
+    const creator = await users.find({ id: req.body.creator });
 
     if (!creator)
       return res
         .status(status.NOT_FOUND)
         .json({ message: status[status.NOT_FOUND], data: {} });
 
-    item.creator = creator.id;
+    items.creator = creator.id;
   }
 
-  item.images = req.body.images;
-  item.name = req.body.name;
-  item.description = req.body.description;
-  item.tags = req.body.tags.map((tag) => transform(tag)) || undefined;
-  item.brand = transform(req.body.brand);
-  const response = await item.save();
+  items.images = req.body.images;
+  items.name = req.body.name;
+  items.description = req.body.description;
+  items.tags = req.body.tags.map((tag) => transform(tag)) || undefined;
+  items.brand = transform(req.body.brand);
+  const response = await items.save();
 
   return res
     .status(status.CREATED)
@@ -54,28 +54,71 @@ router.post("/", auth, async (req, res) => {
 });
 
 router.get("/", async (req, res) => {
-  const filter = req.params.filter || undefined;
-  const limit = Number(req.params.limit) || undefined;
-  const offset = Number(req.params.offset) || undefined;
-  const order = req.params.order || undefined;
-  const items = await item.findMany(filter, limit, offset, order);
+  const sort = req.query.sort;
+  const brand = req.query.brand;
+  const gender = req.query.gender;
+  const color = req.query.color;
+  const releaseYear = req.query.releaseYear;
+  const tag = req.query.tag;
+  const limit = Number(req.query.limit) || undefined;
+  const offset = Number(req.query.offset) || undefined;
+  const popular = { favoriteBy: { _count: "desc" } };
+  const newest = { releaseYear: "desc" };
+  const latest = { createdAt: "desc" };
 
-  if (!items.length)
+  const order =
+    sort === "newest" ? newest : sort === "latest" ? latest : popular;
+
+  const filter = {
+    AND: [
+      brand && {
+        brand: {
+          name: {
+            contains: brand,
+            lte: "insensitive",
+          },
+        },
+      },
+      gender && {
+        gender: gender.toUpperCase(),
+      },
+      color && {
+        color: {
+          contains: color,
+          lte: "insensitive",
+        },
+      },
+      releaseYear && {
+        releaseYear: Number(releaseYear),
+      },
+      tag && {
+        tags: {
+          some: {
+            name: {
+              contains: tag,
+              lte: "insensitive",
+            },
+          },
+        },
+      },
+    ].filter(Boolean),
+  };
+
+  const data = await items.findMany(filter, limit, offset, order);
+
+  if (!data.length)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], error: true });
+      .json({ message: status[status.NOT_FOUND], items: [] });
 
-  res.status(status.OK).json({ message: status[status.OK], items });
-});
-
-router.get("/count", async (req, res) => {
-  // const item = new Item();
-  const count = item.count();
-  res.status(status.OK).json({ message: status[status.OK], count });
+  const count = await items.count();
+  res
+    .status(status.OK)
+    .json({ message: status[status.OK], items: data, count });
 });
 
 router.get("/tags", async (req, res) => {
-  const tags = await item.getTags();
+  const tags = await items.getTags();
 
   if (!tags.length)
     return res
@@ -86,15 +129,15 @@ router.get("/tags", async (req, res) => {
 });
 
 router.get("/:item([a-zA-Z0-9_-]+)", async (req, res) => {
-  item.id = req.params.item;
-  const data = await item.find();
+  items.id = req.params.item;
+  const data = await items.find();
 
   if (!data)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
 
-  res.status(status.OK).json({ message: status[status.OK], item });
+  res.status(status.OK).json({ message: status[status.OK], item: data });
 });
 
 router.patch("/:item", async (req, res) => {
@@ -118,7 +161,6 @@ router.patch("/:item", async (req, res) => {
   let itemData = { ...req.body };
 
   if (!!req.body.tags && req.body.tags.length > 0) {
-    logger.info("Parsing tags");
     itemData.tags = req.body.tags.map((tag) =>
       tag
         .trim()
@@ -126,10 +168,8 @@ router.patch("/:item", async (req, res) => {
         .replace(/[^a-zA-Z0-9]/g, "")
     );
   }
-
-  // const item = new Item();
-  item.id = req.params.item;
-  let itemExists = await item.find();
+  items.id = req.params.item;
+  let itemExists = await items.find();
 
   if (!itemExists) {
     logger.error("Item not found");
@@ -138,9 +178,7 @@ router.patch("/:item", async (req, res) => {
       .json({ message: status[status.NOT_FOUND], error: true });
   }
 
-  const response = await item.save(itemData);
-
-  logger.info("Returning response...");
+  const response = await items.save(itemData);
   return res
     .status(status.OK)
     .json({ message: status[status.OK], data: response });
@@ -148,15 +186,15 @@ router.patch("/:item", async (req, res) => {
 
 router.delete("/:item", async (req, res) => {
   // const item = new Item();
-  item.id = req.params.item;
-  let itemExists = await item.find();
+  items.id = req.params.item;
+  let itemExists = await items.find();
 
   if (!itemExists)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  await item.delete();
+  await items.delete();
 
   return res.status(status.NO_CONTENT).end();
 });

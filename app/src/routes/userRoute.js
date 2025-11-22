@@ -1,39 +1,39 @@
 const express = require("express");
-const { user } = require("../utils/User");
-const { style } = require("../utils/Style");
-const { collection } = require("../utils/Collection");
+const { users } = require("../utils/User");
+const { styles } = require("../utils/Style");
+const { collections } = require("../utils/Collection");
 const { status } = require("http-status");
 const router = express.Router();
 
 router.get("/", async (req, res) => {
-  let users = await user.findMany();
+  const data = await users.findMany();
 
-  if (users.length <= 1)
+  if (!data.length)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  return res.status(status.OK).json({ users });
+  return res.status(status.OK).json({ users: data });
 });
 
 router.post("/:user/subscribe", async (req, res) => {
-  user.id = req.params.user;
-  let isUser = await user.find();
+  users.id = req.params.user;
+  let isUser = await users.find();
 
   if (!isUser)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
 
-  user.id = req.user.id;
-  let isSubscribed = await user.isSubscribed(req.params.user);
+  users.id = req.user.id;
+  let isSubscribed = await users.isSubscribed(req.params.user);
 
   if (isSubscribed)
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
-  let subscription = await user.subscribe(req.params.user);
+  let subscription = await users.subscribe(req.params.user);
 
   res
     .status(status.CREATED)
@@ -41,91 +41,95 @@ router.post("/:user/subscribe", async (req, res) => {
 });
 
 router.delete("/:user/unsubscribe", async (req, res) => {
-  user.id = req.params.user;
-  let isUser = await user.find();
+  users.id = req.params.user;
+  let isUser = await users.find();
 
   if (!isUser)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
 
-  user.id = req.user.id;
-  let isSubscribed = await user.isSubscribed(req.params.user);
+  users.id = req.user.id;
+  let isSubscribed = await users.isSubscribed(req.params.user);
 
   if (!isSubscribed)
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
-  await user.unsubscribe(req.params.user);
+  await users.unsubscribe(req.params.user);
 
   return res.status(status.NO_CONTENT).end();
 });
 
 router.get("/me", async (req, res) => {
-  user.id = req.user.id;
-  const isUser = await user.find();
+  users.id = req.user.id;
+  const isUser = await users.find();
 
   if (!isUser)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  return res.status(status.OK).json({ message: status[status.OK], user });
+  return res
+    .status(status.OK)
+    .json({ message: status[status.OK], user: isUser });
 });
 
 router.get("/:user/style", async (req, res) => {
-  user.id = req.params.user;
-  const isUser = await user.find();
+  users.id = req.params.user;
+  const find = await users.find();
 
-  if (!isUser)
+  if (!find)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
 
-  const styles = await style.findMany({ authorId: user.id });
+  const data = await styles.findMany({ authorId: users.id });
 
-  if (!styles.length)
+  if (!data.length)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  return res.status(status.OK).json({ message: status[status.OK], styles });
+  return res
+    .status(status.OK)
+    .json({ message: status[status.OK], styles: data });
 });
 
 router.get("/:user/collection", async (req, res) => {
-  user.id = req.params.user;
-  const isUser = await user.find();
+  users.id = req.params.user;
+  const find = await users.find();
 
-  if (!isUser)
+  if (!find)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
 
-  const collections = await collection.findMany({ authorId: req.params.user });
+  const data = await collections.findMany({ authorId: req.params.user });
 
-  if (!collections.length)
+  if (!data.length)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
 
   return res
     .status(status.OK)
-    .json({ message: status[status.OK], collections });
+    .json({ message: status[status.OK], collections: data });
 });
 
 router.patch("/me", async (req, res) => {
-  user.id = req.user.id;
-  user.name = req.body.name;
-  user.email = req.body.email;
+  users.id = req.user.id;
+  users.name = req.body.name;
+  users.email = req.body.email;
 
-  const data = await user.save();
+  const data = await users.save();
 
   return res.status(status.OK).json({ message: status[status.OK], data });
 });
 
 router.patch("/profile", async (req, res) => {
-  user.id = req.user.id;
+  users.id = req.user.id;
 
   const data = {
     ...(req.body.firstname !== undefined && { firstname: req.body.firstname }),
@@ -138,23 +142,23 @@ router.patch("/profile", async (req, res) => {
       .status(status.BAD_GATEWAY)
       .json({ message: status.BAD_REQUEST, error: true });
 
-  const profile = await user.updateProfile(data);
+  const profile = await users.updateProfile(data);
 
   return res.status(status.OK).json({ message: status[status.OK], profile });
 });
 
 router.patch("/password", async (req, res) => {
-  user.id = req.user.id;
+  users.id = req.user.id;
 
-  let password = await user.passwordMatch(req.body.password);
+  let password = await users.passwordMatch(req.body.password);
 
   if (!password)
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
-  user.password = req.body.newpassword;
-  await user.save();
+  users.password = req.body.newpassword;
+  await users.save();
 
   return res
     .status(status.OK)
@@ -162,8 +166,8 @@ router.patch("/password", async (req, res) => {
 });
 
 router.get("/:user", async (req, res) => {
-  user.id = req.params.user;
-  const data = await user.find();
+  users.id = req.params.user;
+  const data = await users.find();
 
   if (!data)
     return res
@@ -179,15 +183,15 @@ router.post("/refresh/token", async (req, res) => {
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
-  const isValidToken = await user.verifyToken(req.body.token);
+  const isValidToken = await users.verifyToken(req.body.token);
 
   if (!isValidToken)
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
-  user.id = req.user.id;
-  const token = await user.generateAccessToken();
+  users.id = req.user.id;
+  const token = await users.generateAccessToken();
 
   return res.status(status.OK).json({ message: status[status.OK], token });
 });

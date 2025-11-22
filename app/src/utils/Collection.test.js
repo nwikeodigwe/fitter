@@ -1,5 +1,6 @@
-const { user } = require("./User");
-const { collection } = require("./Collection");
+const { users } = require("./User");
+const { collections } = require("./Collection");
+const prisma = require("../functions/prisma");
 const { faker } = require("@faker-js/faker");
 
 describe("Collection", () => {
@@ -46,133 +47,124 @@ describe("Collection", () => {
 
   describe("create", () => {
     it("Should call save method when creating a collection", async () => {
-      jest
-        .spyOn(collection, "create")
-        .mockResolvedValue(mockCollectionReturnValue);
+      jest.spyOn(prisma.collection, "create").mockResolvedValue(true);
 
-      collection.name = collectionData.name;
-      collection.description = collectionData.description;
+      collections.name = faker.commerce.product();
+      collections.description = faker.commerce.productDescription();
 
-      await collection.create();
+      await collections.create();
 
-      expect(collection.create).toHaveBeenCalled();
+      expect(prisma.collection.create).toHaveBeenCalled();
     });
 
     it("Should return the created collection object", async () => {
       jest
-        .spyOn(collection, "create")
+        .spyOn(prisma.collection, "create")
         .mockResolvedValue(mockCollectionReturnValue);
 
-      jest.spyOn(user, "save").mockResolvedValue(mockUserReturnValue);
+      users.email = faker.internet.email();
+      users.password = faker.internet.password();
+      await users.save();
+      collections.tags = collectionData.tags;
+      collections.authorId = "author_id";
+      collections.id = "collection_id";
+      const result = await collections.create();
 
-      user.email = faker.internet.email();
-      user.password = faker.internet.password();
-      await user.save();
-      collection.tags = collectionData.tags;
-      collection.authorId = user.id;
-      const result = await collection.create();
-
+      expect(prisma.collection.create).toHaveBeenCalled();
       expect(result).toMatchObject(mockCollectionReturnValue);
     });
   });
 
   describe("find", () => {
     it("Should return null if collection not found", async () => {
-      await collection.delete();
-      const result = await collection.find();
+      jest.spyOn(prisma.collection, "findFirst").mockResolvedValue(null);
 
+      collections.id = "collection_id";
+      const result = await collections.find();
+
+      expect(prisma.collection.findFirst).toHaveBeenCalled();
       expect(result).toBeNull();
     });
 
     it("Should throw error if id, name  not provided", async () => {
-      jest.spyOn(collection, "findById").mockImplementation(() => {
-        throw new Error("At least one of id, name or slug must be provided");
-      });
+      collections.id = undefined;
+      collections.name = undefined;
+      collections.slug = undefined;
 
-      collection.id = undefined;
-      collection.name = undefined;
-
-      expect(() => collection.find({})).toThrow(
-        "At least one of id, name or slug must be provided"
+      await expect(collections.find()).rejects.toThrow(
+        /At least one of id or slug must be provided/
       );
     });
 
     it("Should return collection object if found", async () => {
       jest
-        .spyOn(collection, "save")
+        .spyOn(prisma.collection, "findFirst")
         .mockResolvedValue(mockCollectionReturnValue);
 
-      collection.name = collectionData.name;
-      collection.description = collectionData.description;
-      collection.tags = collectionData.tags;
-      await collection.save();
+      collections.name = collectionData.name;
+      collections.description = collectionData.description;
+      collections.tags = collectionData.tags;
+      collections.id = "collection_id";
+      const result = await collections.find();
 
-      jest
-        .spyOn(collection, "find")
-        .mockResolvedValue(mockCollectionReturnValue);
-
-      const result = await collection.find();
-
+      expect(prisma.collection.findFirst).toHaveBeenCalled();
       expect(result).toMatchObject(mockCollectionReturnValue);
     });
   });
 
   describe("findById", () => {
     it("Should return null if collection not found", async () => {
-      jest.spyOn(collection, "findById").mockResolvedValue(null);
+      jest.spyOn(prisma.collection, "findUnique").mockResolvedValue(null);
 
-      collection.id = "invalid_collection_id";
-      const result = await collection.findById();
+      collections.id = "invalid_collection_id";
+      const result = await collections.findById();
 
+      expect(prisma.collection.findUnique).toHaveBeenCalled();
       expect(result).toBeNull();
     });
 
     it("Should return collection object if found", async () => {
       jest
-        .spyOn(collection, "findById")
+        .spyOn(prisma.collection, "findUnique")
         .mockResolvedValue(mockCollectionReturnValue);
 
-      jest.spyOn(collection, "save").mockResolvedValue(mockUserReturnValue);
+      collections.authorId = userData.id;
+      collections.id = "collection_id";
+      const result = await collections.findById();
 
-      collection.authorId = userData.id;
-      const saved = await collection.save();
-      collection.id = saved.id;
-      const result = await collection.findById();
-
+      expect(prisma.collection.findUnique).toHaveBeenCalled();
       expect(result).toMatchObject(mockCollectionReturnValue);
     });
   });
 
   describe("update", () => {
     it("Should return null if collection.id invalid", async () => {
-      jest.spyOn(collection, "save").mockResolvedValue(null);
+      jest.spyOn(prisma.collection, "findFirst").mockResolvedValue(null);
 
-      collection.id = "invalid_collection_id";
-      const result = await collection.update();
+      collections.id = "invalid_collection_id";
+      const result = await collections.update();
 
-      expect(result).toBeNull();
+      expect(prisma.collection.findFirst).toHaveBeenCalled();
+      expect(result).toBeFalsy();
     });
 
     it("should return the updated user object", async () => {
-      jest
-        .spyOn(collection, "save")
-        .mockResolvedValue(mockCollectionReturnValue);
-
-      collection.name = collectionData.name;
-      collection.description = collectionData.description;
-      const saved = await collection.save();
+      jest.spyOn(prisma.collection, "findFirst").mockResolvedValue(true);
 
       const newname = faker.internet.username();
 
       jest
-        .spyOn(collection, "update")
-        .mockResolvedValue({ ...saved, name: newname });
+        .spyOn(prisma.collection, "update")
+        .mockResolvedValue({ ...mockCollectionReturnValue, name: newname });
 
-      collection.id = saved.id;
-      collection.name = newname;
+      collections.name = newname;
+      collections.id = "collection_id";
+      collections.id = "collection_id";
 
-      const result = await collection.update();
+      const result = await collections.update();
 
+      expect(prisma.collection.findFirst).toHaveBeenCalled();
+      expect(prisma.collection.update).toHaveBeenCalled();
       expect(result).toMatchObject({
         ...mockCollectionReturnValue,
         name: newname,
@@ -182,29 +174,26 @@ describe("Collection", () => {
 
   describe("delete", () => {
     it("Should return true if collection deleted", async () => {
+      jest.spyOn(prisma.collection, "findFirst").mockResolvedValue(true);
       jest
-        .spyOn(collection, "save")
+        .spyOn(prisma.collection, "delete")
         .mockResolvedValue(mockCollectionReturnValue);
 
-      const saved = await collection.save();
+      const result = await collections.delete();
 
-      jest
-        .spyOn(collection, "delete")
-        .mockResolvedValue(mockCollectionReturnValue);
-
-      collection.id = saved.id;
-      const result = await collection.delete();
-
+      expect(prisma.collection.findFirst).toHaveBeenCalled();
+      expect(prisma.collection.delete).toHaveBeenCalled();
       expect(result).toBeTruthy();
     });
 
     it("Should return false if invalid collection provided", async () => {
-      jest.spyOn(collection, "delete").mockResolvedValue(null);
+      jest.spyOn(prisma.collection, "findFirst").mockResolvedValue(false);
 
-      collection.id = "invalid_collection_id";
-      const result = await collection.delete();
+      collections.id = "invalid_collection_id";
+      const result = await collections.delete();
 
-      expect(result).toBeNull();
+      expect(prisma.collection.findFirst).toHaveBeenCalled();
+      expect(result).toBeFalsy();
     });
   });
 });
