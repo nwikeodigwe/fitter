@@ -28,8 +28,6 @@ class Comment {
 
     comment = await this.find();
 
-    console.log(comment);
-
     return comment ? this.update() : this.create();
   }
 

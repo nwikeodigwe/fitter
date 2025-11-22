@@ -63,7 +63,7 @@ router.get("/", async (req, res) => {
   const tag = req.query.tag;
   const limit = Number(req.query.limit) || undefined;
   const offset = Number(req.query.offset) || undefined;
-  const popular = { favoriteBy: { _count: "desc" } };
+  const popular = { favoritedBy: { _count: "desc" } };
   const newest = { releaseYear: "desc" };
   const latest = { createdAt: "desc" };
 

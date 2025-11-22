@@ -6,7 +6,6 @@ const { status } = require("http-status");
 const jwt = require("jsonwebtoken");
 const request = require("supertest");
 
-const { response } = require("../functions/testHelpers");
 let server;
 
 describe("Item route", () => {

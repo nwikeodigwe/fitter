@@ -8,11 +8,11 @@ const { items } = require("../utils/item");
 const { status } = require("http-status");
 const router = express.Router();
 
-const models = { brands, items, collections, styles, users, comments };
+const models = { brands, items, collections, styles };
+const valid = ["brands", "items", "styles", "collections"];
 
 router.post("/:type/:type_id", async (req, res) => {
   const type = req.params.type;
-  const valid = ["brands", "items", "styles", "collections"];
   const Model = models[req.params.type];
 
   if (!valid.includes(type))
@@ -21,9 +21,9 @@ router.post("/:type/:type_id", async (req, res) => {
       .json({ message: status[status.BAD_REQUEST], error: true });
 
   Model.id = req.params.type_id;
-  const isExist = await Model.find();
+  const find = await Model.find();
 
-  if (!isExist)
+  if (!find)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
@@ -35,9 +35,8 @@ router.post("/:type/:type_id", async (req, res) => {
     .json({ message: status[status.CREATED], favorite: true });
 });
 
-router.delete("/:type/:type_id", async (req, res) => {
+router.get("/:type/:type_id/favorited", async (req, res) => {
   const type = req.params.type;
-  const valid = ["brands", "items", "styles", "collections"];
   const Model = models[req.params.type];
 
   if (!valid.includes(type))
@@ -46,16 +45,38 @@ router.delete("/:type/:type_id", async (req, res) => {
       .json({ message: status[status.BAD_REQUEST], error: true });
 
   Model.id = req.params.type_id;
-  const isExist = await Model.find();
+  const favorited = await Model.isFavorite(req.user.type_id);
 
-  if (!isExist)
+  if (!favorited)
+    return res
+      .status(status.NOT_FOUND)
+      .json({ message: status[status.OK], favorited: false });
+
+  return res
+    .status(status.CREATED)
+    .json({ message: status[status.OK], favorited: true });
+});
+
+router.delete("/:type/:type_id", async (req, res) => {
+  const type = req.params.type;
+  const Model = models[req.params.type];
+
+  if (!valid.includes(type))
+    return res
+      .status(status.BAD_REQUEST)
+      .json({ message: status[status.BAD_REQUEST], error: true });
+
+  Model.id = req.params.type_id;
+  const find = await Model.find();
+
+  if (!find)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
 
-  const isFavorite = await Model.isFavorite(req.user.type_id);
+  const favorited = await Model.isFavorite(req.user.id);
 
-  if (!isFavorite)
+  if (!favorited)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
