@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const { app } = require("../app");
-const { brands } = require("../utils/Brand");
-const { users } = require("../utils/User");
+const { brands } = require("../utils/brand");
+const { users } = require("../utils/user");
 const { status } = require("http-status");
 const { faker } = require("@faker-js/faker");
 const request = require("supertest");

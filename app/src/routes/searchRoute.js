@@ -1,9 +1,9 @@
 const express = require("express");
-const { items } = require("../utils/Item");
-const { styles } = require("../utils/Style");
-const { collections } = require("../utils/Collection");
-const { brands } = require("../utils/Brand");
-const { search } = require("../utils/Search");
+const { items } = require("../utils/item");
+const { styles } = require("../utils/style");
+const { collections } = require("../utils/collection");
+const { brands } = require("../utils/brand");
+const { search } = require("../utils/search");
 const { status } = require("http-status");
 const router = express.Router();
 

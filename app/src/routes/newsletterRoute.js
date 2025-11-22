@@ -1,5 +1,5 @@
 const express = require("express");
-const newsletter = require("../utils/Newsletter");
+const newsletter = require("../utils/newsletter");
 const { status } = require("http-status");
 const router = express.Router();
 

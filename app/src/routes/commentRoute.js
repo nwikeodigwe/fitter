@@ -1,10 +1,10 @@
 const express = require("express");
-const { brands } = require("../utils/Brand");
-const { comments } = require("../utils/Comment");
-const { users } = require("../utils/User");
-const { styles } = require("../utils/Style");
-const { collections } = require("../utils/Collection");
-const { items } = require("../utils/Item");
+const { brands } = require("../utils/brand");
+const { comments } = require("../utils/comment");
+const { users } = require("../utils/user");
+const { styles } = require("../utils/style");
+const { collections } = require("../utils/collection");
+const { items } = require("../utils/item");
 const { status } = require("http-status");
 const transform = require("../functions/transform");
 const auth = require("../middleware/auth");

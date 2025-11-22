@@ -1,5 +1,5 @@
-const { profile } = require("./Profile");
-const { users } = require("./User");
+const { profile } = require("./profile");
+const { users } = require("./user");
 const { faker } = require("@faker-js/faker");
 
 describe("Profile", () => {

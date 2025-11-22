@@ -1,5 +1,5 @@
 const prisma = require("../functions/prisma");
-const { logger } = require("./Logger");
+const { logger } = require("./logger");
 
 class Comment {
   constructor(comment = {}) {
@@ -29,7 +29,7 @@ class Comment {
     comment = await this.find();
 
     console.log(comment);
-  
+
     return comment ? this.update() : this.create();
   }
 

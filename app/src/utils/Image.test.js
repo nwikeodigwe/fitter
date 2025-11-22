@@ -1,5 +1,5 @@
 const prisma = require("../functions/prisma");
-const { image } = require("./Image");
+const { image } = require("./image");
 const { faker } = require("@faker-js/faker");
 
 describe("Image", () => {

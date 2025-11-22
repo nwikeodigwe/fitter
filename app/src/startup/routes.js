@@ -1,5 +1,7 @@
 const express = require("express");
-const indexRoute = require("../routes/indexRoute");
+const favoriteRoute = require("../routes/favoriteRoute");
+const subscribeRoute = require("../routes/subscribeRoute");
+const voteRoute = require("../routes/voteRoute");
 const authRoute = require("../routes/authRoute");
 const locationRoute = require("../routes/locationRoute");
 const userRoute = require("../routes/userRoute");
@@ -43,7 +45,9 @@ module.exports = (app) => {
   app.use("/api/search", searchRoute);
   app.use("/api/newsletter", newsletterRoute);
   app.use(auth);
-  app.use("/api", indexRoute);
+  app.use("/api/vote", voteRoute);
+  app.use("/api/subscribe", subscribeRoute);
+  app.use("/api/favorite", favoriteRoute);
   app.use("/api/comments", commentRoute);
   app.use("/api/users", userRoute);
   app.use(error);

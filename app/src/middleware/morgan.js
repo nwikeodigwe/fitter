@@ -1,5 +1,5 @@
 const morgan = require("morgan");
-const logger = require("../utils/Logger");
+const logger = require("../utils/logger");
 
 module.exports = morgan("combined", {
   stream: {

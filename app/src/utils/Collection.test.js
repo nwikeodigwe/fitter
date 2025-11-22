@@ -1,5 +1,5 @@
-const { users } = require("./User");
-const { collections } = require("./Collection");
+const { users } = require("./user");
+const { collections } = require("./collection");
 const prisma = require("../functions/prisma");
 const { faker } = require("@faker-js/faker");
 

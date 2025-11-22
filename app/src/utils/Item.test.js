@@ -1,4 +1,4 @@
-const { items } = require("./Item");
+const { items } = require("./item");
 const prisma = require("../functions/prisma");
 const { faker } = require("@faker-js/faker");
 

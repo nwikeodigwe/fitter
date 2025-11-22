@@ -1,4 +1,4 @@
-const logger = require("../utils/Logger");
+const logger = require("../utils/logger");
 const { status } = require("http-status");
 
 module.exports = function (err, req, res, next) {

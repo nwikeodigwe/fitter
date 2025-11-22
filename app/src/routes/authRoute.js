@@ -1,7 +1,7 @@
 const express = require("express");
-const { users } = require("../utils/User");
+const { users } = require("../utils/user");
 const { status } = require("http-status");
-const { newsletter } = require("../utils/Newsletter");
+const { newsletter } = require("../utils/newsletter");
 const router = express.Router();
 
 router.post("/signup", async (req, res) => {

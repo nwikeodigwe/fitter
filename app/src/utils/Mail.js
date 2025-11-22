@@ -2,7 +2,7 @@ const { resend } = require("../startup/resend");
 const handlebars = require("handlebars");
 const fs = require("fs");
 const path = require("path");
-const { logger } = require("./Logger");
+const { logger } = require("./logger");
 
 class Mail {
   constructor() {

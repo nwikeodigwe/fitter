@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const handlebars = require("handlebars");
-const { mail } = require("./Mail");
+const { mail } = require("./mail");
 const { faker } = require("@faker-js/faker");
 const { resend } = require("../startup/resend");
 

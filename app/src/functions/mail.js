@@ -1,4 +1,4 @@
-const Mail = require("../utils/Mail");
+const Mail = require("../utils/mail");
 
 const mail = new Mail();
 

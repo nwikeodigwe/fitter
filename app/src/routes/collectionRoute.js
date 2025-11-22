@@ -1,6 +1,6 @@
 const express = require("express");
-const { collections } = require("../utils/Collection");
-const { styles } = require("../utils/Style");
+const { collections } = require("../utils/collection");
+const { styles } = require("../utils/style");
 const auth = require("../middleware/auth");
 const { status } = require("http-status");
 const router = express.Router();

@@ -1,9 +1,9 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const rug = require("random-username-generator");
-const logger = require("../utils/Logger");
+const logger = require("./logger");
 const prisma = require("../functions/prisma");
-const { mail } = require("./Mail");
+const { mail } = require("./mail");
 const template = require("../const/mail.json");
 
 class User {

@@ -1,5 +1,5 @@
 // logger.test.js
-const { logger } = require("./Logger");
+const { logger } = require("./logger");
 
 describe("Logger", () => {
   beforeAll(() => {

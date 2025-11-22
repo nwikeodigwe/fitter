@@ -1,11 +1,11 @@
 const jwt = require("jsonwebtoken");
 const { app } = require("../app");
-const { users } = require("../utils/User");
-const { brands } = require("../utils/Brand");
-const { comments } = require("../utils/Comment");
-const { collections } = require("../utils/Collection");
-const { styles } = require("../utils/Style");
-const { items } = require("../utils/Item");
+const { users } = require("../utils/user");
+const { brands } = require("../utils/brand");
+const { comments } = require("../utils/comment");
+const { collections } = require("../utils/collection");
+const { styles } = require("../utils/style");
+const { items } = require("../utils/item");
 const { status } = require("http-status");
 const { faker } = require("@faker-js/faker");
 

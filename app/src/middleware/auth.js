@@ -1,4 +1,4 @@
-const { logger } = require("../utils/Logger");
+const { logger } = require("../utils/logger");
 const { status } = require("http-status");
 const jwt = require("jsonwebtoken");
 
@@ -7,12 +7,10 @@ module.exports = async (req, res, next) => {
     const token = req.headers["authorization"]?.split(" ")[1];
 
     if (!token)
-      return res
-        .status(status.UNAUTHORIZED)
-        .json({
-          message: status[status.UNAUTHORIZED],
-          error: true,
-        });
+      return res.status(status.UNAUTHORIZED).json({
+        message: status[status.UNAUTHORIZED],
+        error: true,
+      });
 
     logger.info("Decoding token...");
     let decode = await jwt.verify(token, process.env.JWT_SECRET);

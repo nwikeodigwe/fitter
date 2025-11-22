@@ -1,6 +1,6 @@
 const prisma = require("../functions/prisma");
 const slugify = require("slugify");
-const { logger } = require("./Logger");
+const { logger } = require("./logger");
 
 class Brand {
   constructor(brand = {}) {

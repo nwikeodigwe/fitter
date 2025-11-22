@@ -1,7 +1,7 @@
 const express = require("express");
-const { styles } = require("../utils/Style");
-const { collections } = require("../utils/Collection");
-const { comments } = require("../utils/Comment");
+const { styles } = require("../utils/style");
+const { collections } = require("../utils/collection");
+const { comments } = require("../utils/comment");
 const auth = require("../middleware/auth");
 const { status } = require("http-status");
 const transform = require("../functions/transform");

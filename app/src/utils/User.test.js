@@ -1,6 +1,6 @@
-const { users } = require("./User");
+const { users } = require("./user");
 const jwt = require("jsonwebtoken");
-const { mail } = require("./Mail");
+const { mail } = require("./mail");
 const bcrypt = require("bcryptjs");
 const { faker } = require("@faker-js/faker");
 const prisma = require("../functions/prisma");

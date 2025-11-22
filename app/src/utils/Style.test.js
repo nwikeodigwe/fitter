@@ -1,4 +1,4 @@
-const { styles } = require("./Style");
+const { styles } = require("./style");
 const prisma = require("../functions/prisma");
 const { faker } = require("@faker-js/faker");
 

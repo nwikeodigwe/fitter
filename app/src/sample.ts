@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
-import logger from "./utils/Logger";
-import scrapper from "./utils/Scrapper";
+import logger from "./utils/logger";
+import scrapper from "./utils/scrapper";
 // import crawl from "./crawler";
 
 // const logger = require("./utils/Logger");

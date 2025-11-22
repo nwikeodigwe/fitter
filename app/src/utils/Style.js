@@ -1,5 +1,5 @@
 const prisma = require("../functions/prisma");
-const { logger } = require("./Logger");
+const { logger } = require("./logger");
 const slugify = require("slugify");
 
 class Style {

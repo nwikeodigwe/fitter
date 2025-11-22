@@ -1,4 +1,4 @@
-const { comments } = require("./Comment");
+const { comments } = require("./comment");
 const prisma = require("../functions/prisma");
 
 const { faker } = require("@faker-js/faker");

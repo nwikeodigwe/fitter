@@ -1,7 +1,7 @@
 const { app } = require("../app");
-const { users } = require("../utils/User");
-const { styles } = require("../utils/Style");
-const { collections } = require("../utils/Collection");
+const { users } = require("../utils/user");
+const { styles } = require("../utils/style");
+const { collections } = require("../utils/collection");
 const { faker } = require("@faker-js/faker");
 const { status } = require("http-status");
 const jwt = require("jsonwebtoken");

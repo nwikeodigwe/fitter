@@ -1,7 +1,7 @@
 const { app } = require("../app");
-const { users } = require("../utils/User");
-const { collections } = require("../utils/Collection");
-const { styles } = require("../utils/Style");
+const { users } = require("../utils/user");
+const { collections } = require("../utils/collection");
+const { styles } = require("../utils/style");
 const { status } = require("http-status");
 const { faker } = require("@faker-js/faker");
 const request = require("supertest");

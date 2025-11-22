@@ -1,7 +1,7 @@
 const express = require("express");
-const { items } = require("../utils/Item");
-const { users } = require("../utils/User");
-const logger = require("../utils/Logger");
+const { items } = require("../utils/item");
+const { users } = require("../utils/user");
+const logger = require("../utils/logger");
 const auth = require("../middleware/auth");
 const { status } = require("http-status");
 const transform = require("../functions/transform");
