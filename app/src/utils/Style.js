@@ -12,22 +12,23 @@ class Style {
     this.images = style.images;
     this.tags = style.tags || [];
     this.author = style.author;
+    this.select = style.select;
 
-    this.selectedFields = {
+    this.defaultSelect = {
       id: true,
       name: true,
       slug: true,
       description: true,
       tags: { select: { name: true } },
-      images: { select: { id: true, url: true } },
+      images: { select: { url: true } },
       collection: {
         select: {
           name: true,
-          id: true,
+          slug: true,
         },
       },
       author: {
-        select: { name: true, id: true },
+        select: { name: true },
       },
       releaseYear: true,
       createdAt: true,
@@ -170,44 +171,59 @@ class Style {
   }
 
   find(style = {}) {
-    const id = style.id || this.id;
-    const name = style.name || this.name;
-    const slug = style.slug || this.slug;
-    const collection = style.collection || this.collection;
+    try {
+      const id = style.id || this.id;
+      const name = style.name || this.name;
+      const slug = style.slug || this.slug;
+      const collection = style.collection || this.collection;
 
-    const filters = [
-      id && { id },
-      name && { name },
-      slug && { slug },
-      collection && { collection: { id: collection } },
-    ].filter(Boolean);
+      const filters = [
+        id && { id },
+        name && { name },
+        slug && { slug },
+        collection && { collection: { id: collection } },
+      ].filter(Boolean);
 
-    if (filters.length === 0) {
-      throw new Error(
-        "At least one of id, name, slug or collection, must be provided"
-      );
+      if (filters.length === 0) {
+        throw new Error(
+          "At least one of id, name, slug or collection, must be provided"
+        );
+      }
+
+      return prisma.style.findFirst({
+        where: {
+          OR: filters,
+        },
+        select: this.selectedFields,
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
     }
-
-    return prisma.style.findFirst({
-      where: {
-        OR: filters,
-      },
-      select: this.selectedFields,
-    });
   }
 
-  findMany(filter = {}, limit = 20, offset = 0, orderBy) {
-    return prisma.style.findMany({
-      where: filter,
-      select: { ...this.selectedFields, _count: { select: { items: true } } },
-      take: limit,
-      skip: offset,
-      orderBy,
-    });
+  findMany({ filter = {}, limit = 20, offset = 0, orderBy = { createdAt: "desc" } }) {
+    try {
+      return prisma.style.findMany({
+        where: filter,
+        select: { ...this.selectedFields, _count: { select: { items: true } } },
+        take: limit,
+        skip: offset,
+        orderBy,
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   count(filter = {}) {
-    return prisma.style.count({ where: filter });
+    try {
+      return prisma.style.count({ where: filter });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   getTags(
@@ -216,132 +232,193 @@ class Style {
     offset = 0,
     orderBy = { styles: { _count: "desc" } }
   ) {
-    return prisma.tag.findMany({
-      where,
-      select: {
-        name: true,
-        styles: { select: { name: true }, distinct: ["name"], take: limit },
-      },
-      distinct: ["name"],
-      take: limit,
-      skip: offset,
-      orderBy,
-    });
+    try {
+      return prisma.tag.findMany({
+        where,
+        select: {
+          name: true,
+          styles: { select: { name: true }, distinct: ["name"], take: limit },
+        },
+        distinct: ["name"],
+        take: limit,
+        skip: offset,
+        orderBy,
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   favorite(user) {
-    return prisma.favoriteStyle.upsert({
-      where: {
-        userId_styleId: {
-          userId: user,
-          styleId: this.id,
-        },
-      },
-      create: {
-        user: {
-          connect: {
-            id: user,
+    try {
+      return prisma.favoriteStyle.upsert({
+        where: {
+          userId_styleId: {
+            userId: user,
+            styleId: this.id,
           },
         },
-        style: {
-          connect: {
-            id: this.id,
+        create: {
+          user: {
+            connect: {
+              id: user,
+            },
+          },
+          style: {
+            connect: {
+              id: this.id,
+            },
           },
         },
-      },
-      update: {},
-      select: {
-        id: true,
-      },
-    });
+        update: {},
+        select: {
+          id: true,
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   isFavorite(user) {
-    return prisma.favoriteStyle.findFirst({
-      where: {
-        userId: user,
-        styleId: this.id,
-      },
-      select: {
-        id: true,
-      },
-    });
-  }
-
-  async unfavorite(user) {
-    await prisma.favoriteStyle.delete({
-      where: {
-        userId_styleId: {
+    try {
+      return !!prisma.favoriteStyle.findFirst({
+        where: {
           userId: user,
           styleId: this.id,
         },
-      },
-    });
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
+  }
+
+  async unfavorite(user) {
+    try {
+      return prisma.favoriteStyle.delete({
+        where: {
+          userId_styleId: {
+            userId: user,
+            styleId: this.id,
+          },
+        },
+        select: { id: true },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   upvote(user) {
-    return prisma.styleVote.upsert({
-      where: {
-        userId_styleId: { styleId: this.id, userId: user },
-      },
-      update: {
-        vote: true,
-      },
-      create: {
-        user: {
-          connect: {
-            id: user,
-          },
+    try {
+      return prisma.styleVote.upsert({
+        where: {
+          userId_styleId: { styleId: this.id, userId: user },
         },
-        style: {
-          connect: {
-            id: this.id,
-          },
+        update: {
+          vote: true,
         },
-        vote: true,
-      },
-    });
+        create: {
+          user: {
+            connect: {
+              id: user,
+            },
+          },
+          style: {
+            connect: {
+              id: this.id,
+            },
+          },
+          vote: true,
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   isVoted(user) {
-    return prisma.styleVote.findFirst({
-      where: {
-        styleId: this.id,
-        userId: user,
-      },
-    });
+    try {
+      return !!prisma.styleVote.findFirst({
+        where: {
+          styleId: this.id,
+          userId: user,
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   downvote(user) {
-    return prisma.styleVote.upsert({
-      where: {
-        userId_styleId: { styleId: this.id, userId: user },
-      },
-      update: {
-        vote: false,
-      },
-      create: {
-        user: {
-          connect: {
-            id: user,
-          },
+    try {
+      return prisma.styleVote.upsert({
+        where: {
+          userId_styleId: { styleId: this.id, userId: user },
         },
-        style: {
-          connect: {
-            id: this.id,
-          },
+        update: {
+          vote: false,
         },
-        vote: false,
-      },
-    });
+        create: {
+          user: {
+            connect: {
+              id: user,
+            },
+          },
+          style: {
+            connect: {
+              id: this.id,
+            },
+          },
+          vote: false,
+        },
+        select: { id: true },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   unvote(user) {
-    return prisma.styleVote.delete({
-      where: {
-        userId_styleId: { styleId: this.id, userId: user },
-      },
-    });
+    try {
+      return prisma.styleVote.delete({
+        where: {
+          userId_styleId: { styleId: this.id, userId: user },
+        },
+        select: { id: true },
+      });
+    } catch (err) {
+      logger.error(err);
+    }
+  }
+
+  upvoteCount() {
+    try {
+      return prisma.styleVote.count({
+        where: { itemId: this.id, vote: true },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
+  }
+
+  downvoteCount() {
+    try {
+      return prisma.styleVote.count({
+        where: { styleId: this.id, vote: false },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 
   async delete(style = {}) {
@@ -355,6 +432,7 @@ class Style {
         where: {
           OR: [{ id: this.id }, { slug: this.slug }],
         },
+        select: { id: true },
       });
     } catch (err) {
       logger.error(err);
@@ -363,7 +441,12 @@ class Style {
   }
 
   deleteMany() {
-    return prisma.style.deleteMany();
+    try {
+      return prisma.style.deleteMany();
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
   }
 }
 

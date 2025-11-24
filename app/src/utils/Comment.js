@@ -3,14 +3,15 @@ const { logger } = require("./logger");
 
 class Comment {
   constructor(comment = {}) {
-    this.id = comment.id || undefined;
-    this.content = comment.content || undefined;
-    this.entity = comment.entity || undefined;
-    this.entityId = comment.entityId || undefined;
-    this.tags = comment.tags || undefined;
-    this.userId = comment.userId || undefined;
-    this.parent = comment.parenr || undefined;
-    this.selectedFields = {
+    this.id = comment.id;
+    this.content = comment.content;
+    this.model = comment.model;
+    this.modelId = comment.modelId;
+    this.tags = comment.tags;
+    this.userId = comment.userId;
+    this.parent = comment.parent;
+    this.select = comment.select;
+    this.defaultSelect = {
       id: true,
       author: { select: { id: true, name: true } },
       content: true,
@@ -20,10 +21,10 @@ class Comment {
   async save(comment = {}) {
     this.id = comment.id || this.id;
     this.content = comment.content || this.content;
-    this.entity = comment.entity || this.entity;
+    this.model = comment.model || this.model;
     this.tags = comment.tags || this.tags;
     this.userId = comment.userId || this.userId;
-    this.entityId = comment.entityId || this.entityId;
+    this.modelId = comment.modelId || this.modelId;
     this.parent = comment.parent || this.parent;
 
     comment = await this.find();
@@ -34,10 +35,10 @@ class Comment {
   async create(comment = {}) {
     try {
       const content = comment.content || this.content;
-      const entity = comment.entity || this.entity;
+      const model = comment.model || this.model;
       const tags = comment.tags || this.tags;
       const userId = comment.userId || this.userId;
-      const entityId = comment.entityId || this.entityId;
+      const modelId = comment.modelId || this.modelId;
       const parent = comment.parent || this.parent;
 
       comment = await prisma.comment.create({
@@ -56,13 +57,13 @@ class Comment {
               id: userId,
             },
           },
-          entity,
-          entityId,
+          model,
+          modelId,
           ...(parent && {
             parent: { connect: { id: parent } },
           }),
         },
-        select: this.selectedFields,
+        select: this.select || this.selectedFields,
       });
 
       this.id = comment.id;
@@ -97,7 +98,7 @@ class Comment {
             },
           }),
         },
-        select: this.selectedFields,
+        select: this.select || this.selectedFields,
       });
     } catch (err) {
       logger.error(err);
@@ -109,7 +110,7 @@ class Comment {
     try {
       return prisma.comment.findFirst({
         where: { id },
-        select: this.selectedFields,
+        select: this.select || this.defaultSelect,
       });
     } catch (err) {
       logger.error(err);
@@ -121,7 +122,21 @@ class Comment {
     try {
       return prisma.comment.findMany({
         where,
-        select: this.selectedFields,
+        select: this.select || this.defaultSelect,
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
+  }
+
+  count({ id, model }) {
+    try {
+      return prisma.comment.count({
+        where: {
+          model: model || this.model,
+          modelId: id || this.modelId,
+        },
       });
     } catch (err) {
       logger.error(err);
@@ -151,6 +166,7 @@ class Comment {
           },
           vote: true,
         },
+        select: { id: true },
       });
     } catch (err) {
       logger.error(err);
@@ -159,7 +175,7 @@ class Comment {
 
   isVoted(user) {
     try {
-      return prisma.commentVote.findFirst({
+      return !!prisma.commentVote.findFirst({
         where: {
           commentId: this.id,
           userId: user,
@@ -193,6 +209,7 @@ class Comment {
           },
           vote: false,
         },
+        select: { id: true },
       });
     } catch (err) {
       logger.error(err);
@@ -206,6 +223,7 @@ class Comment {
         where: {
           userId_commentId: { commentId: this.id, userId: user },
         },
+        select: { id: true },
       });
     } catch (err) {
       logger.error(err);
@@ -224,6 +242,7 @@ class Comment {
         where: {
           id: user.id,
         },
+        select: { id: true },
       });
     } catch (err) {
       logger.error(err);
@@ -235,6 +254,7 @@ class Comment {
     try {
       return prisma.comment.deleteMany({
         where,
+        select: { id: true },
       });
     } catch (err) {
       logger.error(err);

@@ -4,6 +4,8 @@
 *.env*
 *.log
 
+*/generate/prisma
+
 # Playwright
 node_modules/
 /test-results/

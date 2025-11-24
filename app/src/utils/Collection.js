@@ -8,16 +8,18 @@ class Collection {
     this.id = collection.id || null;
     this.name = collection.name || null;
     this.slug = collection.slug || this.#createSlug(this.name) || null;
+    this.tags = collection.tags || null;
     this.description = collection.description || null;
     this.images = collection.images || null;
     this.authorId = collection.authorId || null;
-    this.selectedFields = {
+    this.select = collection.select || null;
+    this.defaultSelect = {
       id: true,
       name: true,
       description: true,
-      images: { select: { id: true, url: true } },
-      tags: true,
-      author: { select: { id: true } },
+      images: { select: { url: true } },
+      tags: { name: true },
+      author: { select: { name: true } },
       _count: {
         select: { styles: true },
       },
@@ -81,7 +83,7 @@ class Collection {
             : {}),
           author: { connect: { id: authorId } },
         },
-        select: this.selectedFields,
+        select: this.select ?? this.selectedFields,
       });
 
       this.id = collection.id;
@@ -131,7 +133,7 @@ class Collection {
               },
             }),
         },
-        select: this.selectedFields,
+        select: this.select ?? this.selectedFields,
       });
     } catch (err) {
       logger.error(err);
@@ -154,7 +156,7 @@ class Collection {
         where: {
           OR: filters,
         },
-        select: this.selectedFields,
+        select: this.select ?? this.selectedFields,
       });
     } catch (err) {
       logger.error(err);
@@ -168,6 +170,7 @@ class Collection {
         where: {
           id,
         },
+        select: this.select ?? this.selectedFields,
       });
     } catch (err) {
       logger.error(err);
@@ -175,11 +178,16 @@ class Collection {
     }
   }
 
-  findMany(filter = {}, limit = 20, offset = 0, order = {}) {
+  findMany({
+    filter = {},
+    limit = 20,
+    offset = 0,
+    order = { createdAt: "desc" },
+  }) {
     try {
       return prisma.collection.findMany({
         where: filter,
-        select: this.selectedFields,
+        select: this.select ?? this.selectedFields,
         take: limit,
         skip: offset,
         orderBy: order,
@@ -208,6 +216,10 @@ class Collection {
     try {
       return prisma.tag.findMany({
         where,
+        distinct: ["name"],
+        take: limit,
+        skip: offset,
+        orderBy,
         select: {
           name: true,
           collections: {
@@ -216,10 +228,6 @@ class Collection {
             take: limit / 2,
           },
         },
-        distinct: ["name"],
-        take: limit,
-        skip: offset,
-        orderBy,
       });
     } catch (err) {
       logger.error(err);
@@ -258,16 +266,16 @@ class Collection {
     }
   }
 
-  async isFavorite(userId, collectionId = this.id) {
+  isFavorite(userId, collectionId = this.id) {
     try {
-      return !!(await prisma.favoriteCollection.findFirst({
+      return !!prisma.favoriteCollection.findFirst({
         where: {
           userId_collectionId: {
             userId: userId,
             collectionId: collectionId,
           },
         },
-      }));
+      });
     } catch (err) {
       logger.error(err);
       throw err;
@@ -283,6 +291,7 @@ class Collection {
             collectionId: collectionId,
           },
         },
+        select: { id: true },
       });
     } catch (err) {
       logger.error(err);
@@ -315,6 +324,7 @@ class Collection {
           },
           vote: true,
         },
+        select: { id: true },
       });
     } catch (err) {
       logger.error(err);
@@ -347,6 +357,7 @@ class Collection {
           },
           vote: false,
         },
+        select: { id: true },
       });
     } catch (err) {
       logger.info(err);
@@ -360,6 +371,7 @@ class Collection {
           userId: userId,
           collectionId: collectionId,
         },
+        select: { id: true },
       }));
     } catch (err) {
       logger.error(err);
@@ -376,6 +388,28 @@ class Collection {
             userId: userId,
           },
         },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
+  }
+
+  upvoteCount() {
+    try {
+      return prisma.collectionVote.count({
+        where: { collectionId: this.id, vote: true },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
+  }
+
+  downvoteCount() {
+    try {
+      return prisma.collectionVote.count({
+        where: { collectionId: this.id, vote: false },
       });
     } catch (err) {
       logger.error(err);

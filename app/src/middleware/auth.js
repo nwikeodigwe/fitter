@@ -11,8 +11,6 @@ module.exports = async (req, res, next) => {
         message: status[status.UNAUTHORIZED],
         error: true,
       });
-
-    logger.info("Decoding token...");
     let decode = await jwt.verify(token, process.env.JWT_SECRET);
 
     req.user = decode;

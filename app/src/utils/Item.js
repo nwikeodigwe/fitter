@@ -16,16 +16,23 @@ class Item {
     this.tags = item.tags || null;
     this.brand = item.brand || null;
     this.userId = item.userId || null;
-    this.selectedFields = {
+    this.select = item.select || null;
+
+    this.defaultSelect = {
       id: true,
       name: true,
       slug: true,
       description: true,
       depthMap: true,
-      images: { select: { id: true, url: true } },
-      brand: { select: { id: true, name: true } },
-      tags: true,
-      creator: { select: { id: true } },
+      images: { select: { url: true } },
+      brand: { select: { name: true } },
+      category: true,
+      material: true,
+      color: true,
+      colorway: true,
+      season: true,
+      tags: { select: { name: true } },
+      author: { select: { id: true } },
       releaseYear: true,
       createdAt: true,
       _count: true,
@@ -106,7 +113,7 @@ class Item {
             },
           },
         },
-        select: this.selectedFields,
+        select: this.defaultSelect,
       });
 
       this.id = item.id;
@@ -176,7 +183,7 @@ class Item {
               }
             : {}),
         },
-        select: this.selectedFields,
+        select: this.defaultSelect,
       });
     } catch (err) {
       logger.error(err);
@@ -202,7 +209,7 @@ class Item {
         where: {
           OR: filters,
         },
-        select: this.selectedFields,
+        select: this.select ?? this.defaultSelect,
       });
     } catch (err) {
       logger.error(err);
@@ -236,16 +243,22 @@ class Item {
     }
   }
 
-  findMany(filter = {}, limit = 20, offset = 0, order) {
+  findMany({
+    filter = {},
+    limit = 20,
+    offset = 0,
+    order = { createdAt: "desc" },
+  }) {
     try {
       return prisma.item.findMany({
         where: filter,
-        select: this.selectedFields,
+        select: this.defaultSelect,
         take: limit,
         skip: offset,
         orderBy: order,
       });
     } catch (err) {
+      console.log(limit, offset, order);
       logger.error(err);
       throw err;
     }
@@ -427,6 +440,28 @@ class Item {
         where: {
           userId_itemId: { itemId: this.id, userId: user },
         },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
+  }
+
+  upvoteCount() {
+    try {
+      return prisma.itemVote.count({
+        where: { itemId: this.id, vote: true },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
+  }
+
+  downvoteCount() {
+    try {
+      return prisma.itemVote.count({
+        where: { itemId: this.id, vote: false },
       });
     } catch (err) {
       logger.error(err);

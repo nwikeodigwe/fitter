@@ -11,13 +11,14 @@ class Brand {
     this.images = brand.images || null;
     this.owner = brand.owner || null;
     this.slug = brand.slug || null;
-    this.selectedFields = {
+    this.select = brand.select || null;
+    this.defaultSelect = {
       id: true,
       name: true,
       slug: true,
       description: true,
-      images: { select: { id: true, url: true } },
-      owner: { select: { id: true, name: true } },
+      images: { select: { url: true } },
+      author: { select: { name: true } },
       tags: { select: { name: true } },
       releaseYear: true,
       createdAt: true,
@@ -81,7 +82,7 @@ class Brand {
               }
             : {}),
         },
-        select: this.selectedFields,
+        select: this.select | this.defaultSelect,
       });
 
       this.id = brand.id;
@@ -127,7 +128,7 @@ class Brand {
           ...(logo ? { logo: { connect: { id: logo } } } : {}),
           ...(owner ? { owner: { connect: { id: owner } } } : {}),
         },
-        select: this.selectedFields,
+        select: this.select | this.selectedFields,
       });
     } catch (err) {
       logger.error(err);
@@ -150,7 +151,7 @@ class Brand {
 
       return prisma.brand.findFirst({
         where: { OR: filters },
-        select: this.selectedFields,
+        select: this.select | this.selectedFields,
       });
     } catch (err) {
       logger.error(err);
@@ -164,26 +165,27 @@ class Brand {
         where: {
           id,
         },
+        select: this.select | this.selectedFields,
       });
     } catch (err) {
       logger.error(err);
-      // throw err;
+      throw err;
     }
   }
 
-  findMany(
+  findMany({
     filter = {},
     limit = 20,
     offset = 0,
-    orderBy = { items: { _count: "desc" } }
-  ) {
+    order = { items: { _count: "desc" } },
+  }) {
     try {
       return prisma.brand.findMany({
         where: filter,
-        select: { ...this.selectedFields, _count: { select: { items: true } } },
+        select: this.select | this.selectedFields,
         take: limit,
         skip: offset,
-        orderBy,
+        orderBy: order,
       });
     } catch (err) {
       logger.error(err);
@@ -258,13 +260,10 @@ class Brand {
 
   isFavorite(user) {
     try {
-      return prisma.favoriteBrand.findFirst({
+      return !!prisma.favoriteBrand.findFirst({
         where: {
           userId: user,
           brandId: this.id,
-        },
-        select: {
-          id: true,
         },
       });
     } catch (err) {
@@ -275,12 +274,15 @@ class Brand {
 
   async unfavorite(user) {
     try {
-      await prisma.favoriteBrand.delete({
+      return await prisma.favoriteBrand.delete({
         where: {
           userId_brandId: {
             userId: user,
             brandId: this.id,
           },
+        },
+        select: {
+          id: true,
         },
       });
     } catch (err) {
@@ -311,6 +313,9 @@ class Brand {
           },
           vote: true,
         },
+        select: {
+          id: true,
+        },
       });
     } catch (err) {
       logger.error(err);
@@ -320,7 +325,7 @@ class Brand {
 
   isVoted(user) {
     try {
-      return prisma.brandVote.findFirst({
+      return !!prisma.brandVote.findFirst({
         where: {
           brandId: this.id,
           userId: user,
@@ -354,6 +359,29 @@ class Brand {
           },
           vote: false,
         },
+        select: { id: true },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
+  }
+
+  upvoteCount() {
+    try {
+      return prisma.brandVote.count({
+        where: { brandId: this.id, upvote: true },
+      });
+    } catch (err) {
+      logger.error(err);
+      throw err;
+    }
+  }
+
+  downvoteCount() {
+    try {
+      return prisma.brandVote.count({
+        where: { brandId: this.id, upvote: false },
       });
     } catch (err) {
       logger.error(err);
@@ -367,6 +395,7 @@ class Brand {
         where: {
           userId_brandId: { brandId: this.id, userId: user },
         },
+        select: { id: true },
       });
     } catch (err) {
       logger.error(err);
@@ -376,7 +405,7 @@ class Brand {
 
   isSubscribed(user) {
     try {
-      return prisma.brandSubscription.findFirst({
+      return !!prisma.brandSubscription.findFirst({
         where: {
           brandId: this.id,
           userId: user,
@@ -420,6 +449,9 @@ class Brand {
           user: { id: user },
           brand: { id: this.id },
         },
+        select: {
+          id: true,
+        },
       });
     } catch (err) {
       logger.error(err);
@@ -440,6 +472,7 @@ class Brand {
         where: {
           id: brand.id,
         },
+        select: { id: true },
       });
     } catch (err) {
       logger.error(err);
@@ -451,6 +484,9 @@ class Brand {
     try {
       return prisma.deleteMany({
         where,
+        select: {
+          id: true,
+        },
       });
     } catch (err) {
       throw err;

@@ -66,6 +66,7 @@ router.get("/", async (req, res) => {
   const popular = { favoritedBy: { _count: "desc" } };
   const newest = { releaseYear: "desc" };
   const latest = { createdAt: "desc" };
+  const select = {};
 
   const order =
     sort === "newest" ? newest : sort === "latest" ? latest : popular;

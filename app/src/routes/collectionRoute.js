@@ -96,7 +96,11 @@ router.get("/", async (req, res) => {
   if (!many.length)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], collections: many });
+      .json({
+        message: status[status.NOT_FOUND],
+        collections: [],
+        error: true,
+      });
 
   const count = await collections.count(filter);
   res
@@ -122,21 +126,26 @@ router.get("/tags", async (req, res) => {
 
 router.get("/:collection", async (req, res) => {
   collections.id = req.params.collection;
-  const isCollection = await collections.find();
+  const collection = await collections.find();
 
-  if (!isCollection)
+  if (!collection)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({
+        message: status[status.NOT_FOUND],
+        collections: {},
+        error: true,
+      });
 
   res
     .status(status.OK)
-    .json({ message: status[status.OK], collections: isCollection });
+    .json({ message: status[status.OK], collections: collection });
 });
 
 router.get("/:collection/styles", async (req, res) => {
-  styles.collection = req.params.collection;
-  const many = await styles.findMany();
+  const many = await styles.findMany({
+    filter: { collection: { id: req.params.collection } },
+  });
 
   if (!many.length)
     return res

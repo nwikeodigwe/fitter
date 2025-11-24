@@ -1,7 +1,6 @@
 const express = require("express");
 const { brands } = require("../utils/brand");
 const { comments } = require("../utils/comment");
-const { users } = require("../utils/user");
 const { styles } = require("../utils/style");
 const { collections } = require("../utils/collection");
 const { items } = require("../utils/item");
@@ -10,19 +9,19 @@ const transform = require("../functions/transform");
 const auth = require("../middleware/auth");
 const router = express.Router();
 
-const models = { brands, items, collections, styles, users, comments };
+const models = { brands, items, collections, styles, comments };
+const valid = ["brands", "items", "styles", "collections"];
 
-router.post("/:type/:type_id", async (req, res) => {
-  const type = req.params.type;
-  const valid = ["brands", "items", "styles", "collections"];
-  const Model = models[req.params.type];
+router.post("/:model/:id", auth, async (req, res) => {
+  const model = req.params.model;
+  const Model = models[req.params.model];
 
-  if (!valid.includes(type))
+  if (!valid.includes(model))
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
-  Model.id = req.params.type_id;
+  Model.id = req.params.id;
   const find = await Model.find();
 
   if (!find)
@@ -42,8 +41,8 @@ router.post("/:type/:type_id", async (req, res) => {
 
   comments.content = req.body.content;
   comments.userId = req.user.id;
-  comments.entity = type;
-  comments.entityId = req.params.type_id;
+  comments.model = model.slice(0, -1).toUpperCase();
+  comments.modelId = req.params.id;
   comments.tags = req.body.tags && req.body.tags.map((tag) => transform(tag));
 
   const created = await comments.save();
@@ -53,10 +52,24 @@ router.post("/:type/:type_id", async (req, res) => {
     .json({ message: status[status.CREATED], created });
 });
 
-router.post("/:type/:type_id/:comment", async (req, res) => {
-  const type = req.params.type;
-  const valid = ["brands", "items", "styles", "collections"];
-  const Model = models[req.params.type];
+router.get("/:model/:id/count", async (req, res) => {
+  const model = req.params.model;
+
+  if (!valid.includes(model))
+    return res
+      .status(status.BAD_REQUEST)
+      .json({ message: status[status.BAD_REQUEST], count: 0, error: true });
+
+  comments.model = model.slice(0, -1).toUpperCase();
+  comments.modelId = req.params.id;
+  const count = await comments.count();
+
+  return res.status(status.OK).json({ message: status[status.OK], count });
+});
+
+router.post("/:model/:id/:comment", auth, async (req, res) => {
+  const model = req.params.model;
+  const Model = models[req.params.model];
 
   if (req.body.tags && !Array.isArray(req.body.tags))
     return res
@@ -68,13 +81,13 @@ router.post("/:type/:type_id/:comment", async (req, res) => {
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
-  if (!valid.includes(type))
+  if (!valid.includes(model))
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
   Model.id = req.params.id;
-  let find = await Model.find();
+  const find = await Model.find();
 
   if (!find)
     return res
@@ -93,18 +106,18 @@ router.post("/:type/:type_id/:comment", async (req, res) => {
   comments.content = req.body.content;
   comments.tags = req.body.tags.map((tag) => transform(tag)) || undefined;
   comments.userId = req.user.id;
-  comments.entity = ENTITY;
-  comments.entityId = brands.id;
+  comments.model = model.slice(0, -1).toUpperCase();
+  comments.modelId = req.params.id;
   comments.parent = req.params.comment;
-  comments = await comments.save();
+  const response = await comments.save();
 
   return res
     .status(status.CREATED)
-    .json({ message: status[status.CREATED], data: comment });
+    .json({ message: status[status.CREATED], data: response });
 });
 
-router.get("/:comment", async (req, res) => {
-  comments.id = req.params.comment;
+router.get("/:id", async (req, res) => {
+  comments.id = req.params.id;
   const find = await comments.find();
 
   if (!find)
@@ -115,17 +128,16 @@ router.get("/:comment", async (req, res) => {
   res.status(status.OK).json({ message: status[status.OK], comment: find });
 });
 
-router.get("/:type/all", async (req, res) => {
-  const type = req.params.type;
-  const valid = ["brands", "items", "styles", "collections"];
+router.get("/:model/:id", async (req, res) => {
+  const model = req.params.model;
 
-  if (!valid.includes(type))
+  if (!valid.includes(model))
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
   const data = await comments.findMany({
-    where: { entity: type.toUpperCase },
+    where: { model: model.slice(0, -1).toUpperCase(), modelId: req.params.id },
   });
 
   if (!data.length)
@@ -136,8 +148,8 @@ router.get("/:type/all", async (req, res) => {
   res.status(status.OK).json({ message: status[status.OK], comments: data });
 });
 
-router.patch("/:comment", async (req, res) => {
-  comments.id = req.params.comment;
+router.patch("/:id", auth, async (req, res) => {
+  comments.id = req.params.id;
   const find = await comments.find();
 
   if (!find)
@@ -158,13 +170,15 @@ router.patch("/:comment", async (req, res) => {
   comments.content = req.body.content;
   comments.userId = req.user.id;
   comments.tags = req.body.tags.map((tag) => transform(tag)) || undefined;
-  const created = await comments.save();
+  const response = await comments.save();
 
-  return res.status(status.OK).json({ message: status[status.OK], created });
+  return res
+    .status(status.OK)
+    .json({ message: status[status.OK], data: response });
 });
 
-router.delete("/:comment", auth, async (req, res) => {
-  comments.id = req.params.comment;
+router.delete("/:id", auth, async (req, res) => {
+  comments.id = req.params.id;
   const find = await comments.find();
 
   if (!find)

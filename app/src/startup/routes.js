@@ -44,11 +44,11 @@ module.exports = (app) => {
   app.use("/api/items", itemRoute);
   app.use("/api/search", searchRoute);
   app.use("/api/newsletter", newsletterRoute);
-  app.use(auth);
   app.use("/api/vote", voteRoute);
+  app.use("/api/comments", commentRoute);
+  app.use(auth);
   app.use("/api/subscribe", subscribeRoute);
   app.use("/api/favorite", favoriteRoute);
-  app.use("/api/comments", commentRoute);
   app.use("/api/users", userRoute);
   app.use(error);
   app.use(morgan);

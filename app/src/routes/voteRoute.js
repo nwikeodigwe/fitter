@@ -6,53 +6,102 @@ const { styles } = require("../utils/style");
 const { collections } = require("../utils/collection");
 const { items } = require("../utils/item");
 const { status } = require("http-status");
+const auth = require("../middleware/auth");
 const router = express.Router();
 
 const models = { brands, items, collections, styles, users, comments };
 
-router.put("/:type/:type_id/upvote", async (req, res) => {
-  const type = req.params.type;
+router.put("/:model/:id/upvote", auth, async (req, res) => {
+  const model = req.params.model;
   const valid = ["brands", "items", "collections", "styles", "comments"];
-  const Model = models[req.params.type];
+  const Model = models[req.params.model];
 
-  if (!valid.includes(type))
+  if (!valid.includes(model))
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
-  Model.id = req.params.type_id;
-  const isExist = await Model.find();
+  Model.id = req.params.id;
+  const find = await Model.find();
 
-  if (!isExist)
+  if (!find)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
 
-  Model.id = req.params.type_id;
   const response = await Model.upvote(req.user.id);
 
   return res.status(status.OK).json({ message: status[status.OK], response });
 });
 
-router.put("/:type/:type_id/downvote", async (req, res) => {
-  const type = req.params.type;
+router.get("/:model/:id/upvote", async (req, res) => {
+  const model = req.params.model;
   const valid = ["brands", "items", "collections", "styles", "comments"];
-  const Model = models[req.params.type];
+  const Model = models[req.params.model];
 
-  if (!valid.includes(type))
+  if (!valid.includes(model))
+    return res
+      .status(status.BAD_REQUEST)
+      .json({ message: status[status.BAD_REQUEST], count: 0, error: true });
+
+  Model.id = req.params.id;
+  const find = await Model.find();
+
+  if (!find)
+    return res
+      .status(status.NOT_FOUND)
+      .json({ message: status[status.NOT_FOUND], count: 0, error: true });
+
+  const count = await Model.upvoteCount();
+
+  return res
+    .status(status.NOT_FOUND)
+    .json({ message: status[status.NOT_FOUND], count });
+});
+
+router.get("/:model/:id/downvote", async (req, res) => {
+  const model = req.params.model;
+  const valid = ["brands", "items", "collections", "styles", "comments"];
+  const Model = models[req.params.model];
+
+  if (!valid.includes(model))
+    return res
+      .status(status.BAD_REQUEST)
+      .json({ message: status[status.BAD_REQUEST], count: 0, error: true });
+
+  Model.id = req.params.id;
+  const find = await Model.find();
+
+  if (!find)
+    return res
+      .status(status.NOT_FOUND)
+      .json({ message: status[status.NOT_FOUND], count: 0, error: true });
+
+  const count = await Model.downvoteCount();
+
+  return res
+    .status(status.NOT_FOUND)
+    .json({ message: status[status.NOT_FOUND], count });
+});
+
+router.put("/:model/:id/downvote", auth, async (req, res) => {
+  const model = req.params.model;
+  const valid = ["brands", "items", "collections", "styles", "comments"];
+  const Model = models[req.params.model];
+
+  if (!valid.includes(model))
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
-  Model.id = req.params.type_id;
-  const isExist = await Model.find();
+  Model.id = req.params.id;
+  const find = await Model.find();
 
-  if (!isExist)
+  if (!find)
     return res
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], data: {} });
 
-  Model.id = req.params.type_id;
   const response = await Model.downvote(req.user.id);
 
   return res
@@ -60,17 +109,17 @@ router.put("/:type/:type_id/downvote", async (req, res) => {
     .json({ message: status[status.OK], data: response });
 });
 
-router.delete("/:type/:type_id", async (req, res) => {
-  const type = req.params.type;
+router.delete("/:model/:id", auth, async (req, res) => {
+  const model = req.params.model;
   const valid = ["brands", "items", "collections", "styles", "comments"];
-  const Model = models[req.params.type];
+  const Model = models[req.params.model];
 
-  if (!valid.includes(type))
+  if (!valid.includes(model))
     return res
       .status(status.BAD_REQUEST)
       .json({ message: status[status.BAD_REQUEST], error: true });
 
-  Model.id = req.params.type_id;
+  Model.id = req.params.id;
   const find = await Model.find();
 
   if (!find)

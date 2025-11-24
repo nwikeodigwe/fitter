@@ -58,23 +58,45 @@ router.get("/", async (req, res) => {
   const brand = req.query.brand;
   const gender = req.query.gender;
   const color = req.query.color;
+  const colorway = req.query.colorway;
+  const material = req.query.material;
   const releaseYear = req.query.releaseYear;
-  const tag = req.query.tag;
-  const limit = Number(req.query.limit) || undefined;
-  const offset = Number(req.query.offset) || undefined;
+  const limit = parseInt(req.query.limit) || undefined;
+  const offset = parseInt(req.query.offset) || undefined;
   const popular = { favoriteItem: { _count: "desc" } };
   const newest = { releaseYear: "desc" };
   const latest = { createdAt: "desc" };
+  const category = req.query.category;
+  const season = req.query.season;
+  const published = req.query.published;
+  const author = req.query.author;
+
+  const flexible =
+    req.query.flexible === "true" || req.query.flexible === "1" ? "OR" : "AND";
+  const tags = Array.isArray(req.query.tags)
+    ? req.query.tags
+    : req.query.tags && [req.query.tags];
+  const designers = Array.isArray(req.query.designers)
+    ? req.query.designers
+    : req.query.designers && [req.query.designers];
 
   const order =
     sort === "newest" ? newest : sort === "latest" ? latest : popular;
 
   const filter = {
-    AND: [
+    [flexible]: [
       brand && {
         brand: {
           name: {
             contains: brand,
+            lte: "insensitive",
+          },
+        },
+      },
+      author && {
+        author: {
+          name: {
+            contains: author,
             lte: "insensitive",
           },
         },
@@ -88,23 +110,54 @@ router.get("/", async (req, res) => {
           lte: "insensitive",
         },
       },
+      colorway && {
+        colorway: {
+          contains: colorway,
+          lte: "insensitive",
+        },
+      },
+      season && {
+        season: season.toUpperCase(),
+      },
+      category && {
+        category: category.toUpperCase(),
+      },
+      material && {
+        material: {
+          contains: material,
+          lte: "insensitive",
+        },
+      },
       releaseYear && {
         releaseYear: Number(releaseYear),
       },
-      tag && {
+      tags && {
         tags: {
           some: {
             name: {
-              contains: tag,
+              in: tags,
               lte: "insensitive",
             },
           },
         },
       },
+      designers && {
+        designers: {
+          some: {
+            name: {
+              in: designers,
+              lte: "insensitive",
+            },
+          },
+        },
+      },
+      published && {
+        published,
+      },
     ].filter(Boolean),
   };
 
-  const data = await items.findMany(filter, limit, offset, order);
+  const data = await items.findMany({ filter, limit, offset, order });
 
   if (!data.length)
     return res
@@ -129,7 +182,7 @@ router.get("/tags", async (req, res) => {
 });
 
 router.get("/:item([a-zA-Z0-9_-]+)", async (req, res) => {
-  items.id = req.params.item;
+  items.slug = req.params.item;
   const data = await items.find();
 
   if (!data)
@@ -137,7 +190,7 @@ router.get("/:item([a-zA-Z0-9_-]+)", async (req, res) => {
       .status(status.NOT_FOUND)
       .json({ message: status[status.NOT_FOUND], error: true });
 
-  res.status(status.OK).json({ message: status[status.OK], item: data });
+  res.status(status.OK).json({ message: status[status.OK], items: data });
 });
 
 router.patch("/:item", async (req, res) => {
@@ -152,13 +205,10 @@ router.patch("/:item", async (req, res) => {
   }
 
   if (req.body.tags && !Array.isArray(req.body.tags)) {
-    logger.error("No tags included in this request");
     return res
       .status(status.BAD_REQUEST)
-      .json({ message: status[status.BAD_REQUEST], data: {} });
+      .json({ message: status[status.BAD_REQUEST], items: {}, error: true });
   }
-
-  let itemData = { ...req.body };
 
   if (!!req.body.tags && req.body.tags.length > 0) {
     itemData.tags = req.body.tags.map((tag) =>
@@ -168,31 +218,29 @@ router.patch("/:item", async (req, res) => {
         .replace(/[^a-zA-Z0-9]/g, "")
     );
   }
-  items.id = req.params.item;
-  let itemExists = await items.find();
+  items.slug = req.params.item;
+  const find = await items.find();
 
-  if (!itemExists) {
-    logger.error("Item not found");
+  if (!find) {
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], error: true });
+      .json({ message: status[status.NOT_FOUND], items: {}, error: true });
   }
 
-  const response = await items.save(itemData);
+  const response = await items.save({ ...req.body });
   return res
     .status(status.OK)
-    .json({ message: status[status.OK], data: response });
+    .json({ message: status[status.OK], items: response });
 });
 
 router.delete("/:item", async (req, res) => {
-  // const item = new Item();
-  items.id = req.params.item;
-  let itemExists = await items.find();
+  items.slug = req.params.item;
+  let find = await items.find();
 
-  if (!itemExists)
+  if (!find)
     return res
       .status(status.NOT_FOUND)
-      .json({ message: status[status.NOT_FOUND], data: {} });
+      .json({ message: status[status.NOT_FOUND], items: {}, error: true });
 
   await items.delete();
 

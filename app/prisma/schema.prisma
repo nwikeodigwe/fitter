@@ -1,5 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client"
+  output     = "../src/generate/prisma"
+  engineType = "client"
 }
 
 datasource db {
@@ -8,36 +10,43 @@ datasource db {
 }
 
 model User {
-  id                  String               @id @default(cuid())
-  name                String?              @unique
-  email               String               @unique
+  id                  String           @id @default(uuid())
+  name                String?          @unique
+  email               String           @unique
   password            String
   social              String?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  avatar              Avatar?
+  avatarId            String?          @unique
+  emailVerified       Boolean          @default(false)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
   brands              Brand[]
-  brandSubscription   BrandSubscription[]
-  brandVote           BrandVote[]
-  authoredCollections Collection[]         @relation("UserAuthoredCollection")
+  authoredCollections Collection[]     @relation("UserAuthoredCollection")
   collectionVote      CollectionVote[]
   comments            Comment[]
-  commentVote         CommentVote[]
-  favoriteBrands      FavoriteBrand[]
-  favoriteCollections FavoriteCollection[]
-  favoriteStyles      FavoriteStyle[]
+  // votes               Votes[]
+  // subsriptions        Subscriptions[]
+  // favorites           Favorites[]
+
   items               Item[]
   itemVote            ItemVote[]
   profile             Profile?
   resets              Reset[]
   authoredStyles      Style[]              @relation("UserAuthoredStyles")
   styleVote           StyleVote[]
+  favoriteBrands      FavoriteBrand[]
+  commentVote         CommentVote[]
+  brandSubscription   BrandSubscription[]
+  brandVote           BrandVote[]
+  favoriteCollections FavoriteCollection[]
+  favoriteStyles      FavoriteStyle[]
   subscriptions       UserSubscription[]   @relation("Subscribers")
   subscribers         UserSubscription[]   @relation("SubscribedTo")
   favoriteItem        FavoriteItem[]
 }
 
 model Profile {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   firstname String?
   lastname  String?
   bio       String?
@@ -47,111 +56,39 @@ model Profile {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model UserSubscription {
-  id           String   @id @default(cuid())
-  userId       String
-  subscriberId String
-  createdAt    DateTime @default(now())
-  subscriber   User     @relation("Subscribers", fields: [subscriberId], references: [id], onDelete: Cascade)
-  user         User     @relation("SubscribedTo", fields: [userId], references: [id], onDelete: Cascade)
+model Item {
+  id           String         @id @default(uuid())
+  name         String
+  slug         String         @unique
+  description  String?
+  color        String?
+  season       SEASON?
+  colorway     String?
+  depthMap     String?
+  category     CATEGORY       @default(UNCATEGORIZED)
+  material     String?
+  releaseYear  Int?
+  gender       GENDER         @default(NEUTRAL)
+  published    Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  brandId      String
+  brand        Brand?         @relation(fields: [brandId], references: [id])
+  author       User?          @relation(fields: [authorId], references: [id])
+  authorId     String?
+  ItemVote     ItemVote[]
+  favoriteItem FavoriteItem[]
+  designers    Designer[]     @relation("ItemDesigner")
+  images       Image[]        @relation("ItemImage")
+  tags         Tag[]          @relation("ItemTags")
+  styles       Style[]        @relation("StyleItem")
 
-  @@unique([userId, subscriberId])
-  @@index([subscriberId], map: "UserSubscription_subscriberId_fkey")
-}
-
-model Reset {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  expires   DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId], map: "Reset_userId_fkey")
-}
-
-model Newsletter {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Search {
-  id        String   @id @default(cuid())
-  query     String
-  createdAt DateTime @default(now())
-}
-
-model Tag {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  brands      Brand[]      @relation("BrandTags")
-  collections Collection[] @relation("CollectionTags")
-  comments    Comment[]    @relation("CommentTags")
-  items       Item[]       @relation("ItemTags")
-  styles      Style[]      @relation("StyleTags")
-}
-
-model Brand {
-  id                String              @id @default(cuid())
-  name              String              @unique
-  slug              String              @unique
-  published         Boolean             @default(false)
-  description       String?
-  releaseYear       Int?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  images            Image[]             @relation("BrandImage")
-  owner             User?               @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-  ownerId           String?
-  BrandSubscription BrandSubscription[]
-  BrandVote         BrandVote[]
-  favoritedBy       FavoriteBrand[]
-  items             Item[]
-  tags              Tag[]               @relation("BrandTags")
-
-  @@index([ownerId], map: "Brand_ownerId_fkey")
-}
-
-model BrandSubscription {
-  id        String   @id @default(cuid())
-  brandId   String
-  userId    String
-  createdAt DateTime @default(now())
-  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([brandId, userId])
-  @@index([userId], map: "BrandSubscription_userId_fkey")
-}
-
-model Collection {
-  id             String               @id @default(cuid())
-  name           String
-  slug           String               @unique
-  published      Boolean              @default(false)
-  releaseYear    Int?
-  description    String?
-  authorId       String?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  author         User?                @relation("UserAuthoredCollection", fields: [authorId], references: [id], onDelete: Cascade)
-  CollectionVote CollectionVote[]
-  favoritedBy    FavoriteCollection[]
-  images         Image[]              @relation("CollectionImage")
-  styles         Style[]
-  tags           Tag[]                @relation("CollectionTags")
-
-  @@index([authorId], map: "Collection_authorId_fkey")
+  @@index([brandId], map: "Item_brandId_fkey")
+  @@index([authorId], map: "Item_creatorId_fkey")
 }
 
 model Style {
-  id           String          @id @default(cuid())
+  id           String          @id @default(uuid())
   name         String
   slug         String          @unique
   description  String
@@ -161,7 +98,7 @@ model Style {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   favoritedBy  FavoriteStyle[]
-  author       User?           @relation("UserAuthoredStyles", fields: [authorId], references: [id], onDelete: Cascade)
+  author       User?           @relation("UserAuthoredStyles", fields: [authorId], references: [id], onDelete: SetNull, onUpdate: Restrict)
   authorId     String?
   collection   Collection?     @relation(fields: [collectionId], references: [id])
   StyleVote    StyleVote[]
@@ -173,65 +110,71 @@ model Style {
   @@index([collectionId], map: "Style_collectionId_fkey")
 }
 
-model Item {
-  id           String         @id @default(cuid())
-  name         String
-  slug         String         @unique
-  description  String?
-  category     String?
-  color        String?
-  colorScheme  String?
-  depthMap     String?
-  releaseYear  Int?
-  gender       GENDER         @default(NEUTRAL)
-  published    Boolean        @default(false)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  brandId      String
-  creatorId    String?
-  brand        Brand?         @relation(fields: [brandId], references: [id])
-  creator      User?          @relation(fields: [creatorId], references: [id])
-  ItemVote     ItemVote[]
-  favoriteItem FavoriteItem[]
-  images       Image[]        @relation("ItemImage")
-  tags         Tag[]          @relation("ItemTags")
-  styles       Style[]        @relation("StyleItem")
+model Brand {
+  id                String              @id @default(uuid())
+  name              String              @unique
+  slug              String              @unique
+  published         Boolean             @default(false)
+  description       String?
+  releaseYear       Int?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  images            Image[]             @relation("BrandImage")
+  author            User?               @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId          String?
+  BrandSubscription BrandSubscription[]
+  BrandVote         BrandVote[]
+  favoritedBy       FavoriteBrand[]
+  items             Item[]
+  tags              Tag[]               @relation("BrandTags")
 
-  @@index([brandId], map: "Item_brandId_fkey")
-  @@index([creatorId], map: "Item_creatorId_fkey")
+  @@index([authorId], map: "Brand_authorId_fkey")
 }
 
-// model Logo {
-//   id        String   @id @default(cuid())
-//   imageId   String
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-//   Brand     Brand?
-//   image     Image    @relation(fields: [imageId], references: [id], onDelete: Cascade)
+model Collection {
+  id             String               @id @default(uuid())
+  name           String
+  slug           String               @unique
+  published      Boolean              @default(false)
+  releaseYear    Int?
+  season         SEASON?
+  description    String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  author         User?                @relation("UserAuthoredCollection", fields: [authorId], references: [id], onDelete: SetNull, onUpdate: Restrict)
+  authorId       String?
+  CollectionVote CollectionVote[]
+  favoritedBy    FavoriteCollection[]
+  images         Image[]              @relation("CollectionImage")
+  styles         Style[]
+  tags           Tag[]                @relation("CollectionTags")
 
-//   @@index([imageId], map: "Logo_imageId_fkey")
-// }
+  @@index([authorId], map: "Collection_authorId_fkey")
+}
 
-model Image {
-  id         String       @id @default(cuid())
-  url        String       @unique
-  createdAt  DateTime     @default(now())
-  brand      Brand[]      @relation("BrandImage")
-  style      Style[]      @relation("StyleImage")
-  collection Collection[] @relation("CollectionImage")
-  item       Item[]       @relation("ItemImage")
+model Reset {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "Reset_userId_fkey")
 }
 
 model Comment {
-  id          String        @id @default(cuid())
-  content     String
-  authorId    String
-  entity      MODEL
-  entityId    String
+  id      String @id @default(uuid())
+  content String
+
+  model       MODEL
+  modelId     String
   parentId    String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId    String
   parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   replies     Comment[]     @relation("CommentReplies")
   CommentVote CommentVote[]
@@ -241,8 +184,123 @@ model Comment {
   @@index([parentId], map: "Comment_parentId_fkey")
 }
 
+model Newsletter {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Search {
+  id        String   @id @default(uuid())
+  query     String
+  createdAt DateTime @default(now())
+}
+
+model Tag {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  brands      Brand[]      @relation("BrandTags")
+  collections Collection[] @relation("CollectionTags")
+  comments    Comment[]    @relation("CommentTags")
+  items       Item[]       @relation("ItemTags")
+  styles      Style[]      @relation("StyleTags")
+}
+
+model Designer {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  items     Item[]   @relation("ItemDesigner")
+}
+
+model Image {
+  id         String       @id @default(uuid())
+  url        String       @unique
+  createdAt  DateTime     @default(now())
+  avartar    Avatar[]
+  brand      Brand[]      @relation("BrandImage")
+  style      Style[]      @relation("StyleImage")
+  collection Collection[] @relation("CollectionImage")
+  item       Item[]       @relation("ItemImage")
+}
+
+model Avatar {
+  id        String   @id @default(uuid())
+  url       String   @unique
+  createdAt DateTime @default(now())
+  image     Image    @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  imageId   String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @unique
+}
+
+// model Votes {
+//   id        String   @id @default(uuid())
+//   model     MODEL
+//   modelId   String
+//   isVoted   Boolean
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+//   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+//   authorId  String
+
+//   @@index([authorId], map: "Vote_authorId_fkey")
+// }
+
+// model Subscriptions {
+//   id        String    @id @default(uuid())
+//   model     SUBSCRIBE
+//   modelId   String
+//   createdAt DateTime  @default(now())
+//   updatedAt DateTime  @updatedAt
+//   author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+//   authorId  String
+
+//   @@index([authorId], map: "Vote_authorId_fkey")
+// }
+
+// model Favorites {
+//   id        String   @id @default(uuid())
+//   model     MODEL
+//   modelId   String
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+//   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+//   authorId  String
+
+//   @@index([authorId], map: "Vote_authorId_fkey")
+// }
+
+model UserSubscription {
+  id           String   @id @default(uuid())
+  userId       String
+  subscriberId String
+  createdAt    DateTime @default(now())
+  subscriber   User     @relation("Subscribers", fields: [subscriberId], references: [id], onDelete: Cascade)
+  user         User     @relation("SubscribedTo", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subscriberId])
+  @@index([subscriberId], map: "UserSubscription_subscriberId_fkey")
+}
+
+model BrandSubscription {
+  id        String   @id @default(uuid())
+  brandId   String
+  userId    String
+  createdAt DateTime @default(now())
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, userId])
+  @@index([userId], map: "BrandSubscription_userId_fkey")
+}
+
 model FavoriteBrand {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   userId    String
   brandId   String
   createdAt DateTime @default(now())
@@ -254,7 +312,7 @@ model FavoriteBrand {
 }
 
 model FavoriteCollection {
-  id           String     @id @default(cuid())
+  id           String     @id @default(uuid())
   userId       String
   collectionId String
   createdAt    DateTime   @default(now())
@@ -266,7 +324,7 @@ model FavoriteCollection {
 }
 
 model FavoriteStyle {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   userId    String
   styleId   String
   createdAt DateTime @default(now())
@@ -278,7 +336,7 @@ model FavoriteStyle {
 }
 
 model FavoriteItem {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   userId    String
   itemId    String
   createdAt DateTime @default(now())
@@ -290,7 +348,7 @@ model FavoriteItem {
 }
 
 model BrandVote {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   userId    String
   brandId   String
   vote      Boolean  @default(true)
@@ -303,7 +361,7 @@ model BrandVote {
 }
 
 model CollectionVote {
-  id           String     @id @default(cuid())
+  id           String     @id @default(uuid())
   userId       String
   collectionId String
   vote         Boolean    @default(true)
@@ -316,7 +374,7 @@ model CollectionVote {
 }
 
 model StyleVote {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   userId    String
   styleId   String
   vote      Boolean  @default(true)
@@ -329,7 +387,7 @@ model StyleVote {
 }
 
 model ItemVote {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   userId    String
   itemId    String
   vote      Boolean  @default(true)
@@ -342,7 +400,7 @@ model ItemVote {
 }
 
 model CommentVote {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   userId    String
   commentId String
   vote      Boolean  @default(true)
@@ -354,10 +412,38 @@ model CommentVote {
   @@index([commentId], map: "CommentVote_commentId_fkey")
 }
 
+enum SEASON {
+  SPRING
+  SUMMER
+  FALL
+  WINTER
+  ALL_SEASON
+}
+
+enum CATEGORY {
+  APPAREL
+  SHOE
+  COLLECTIBLE
+  ACCESSORY
+  UNCATEGORIZED
+}
+
 enum GENDER {
   MAN
   WOMAN
   NEUTRAL
+}
+
+enum SUBSCRIBE {
+  BRAND
+  USER
+}
+
+enum FAVORITE {
+  STYLE
+  ITEM
+  BRAND
+  COLLECTION
 }
 
 enum MODEL {
